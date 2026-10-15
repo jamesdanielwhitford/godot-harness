@@ -4,16 +4,21 @@ Goal: build a harness that makes an LLM coding agent (Claude Code) work as well 
 
 Target engine: **Godot 4.7 stable** (`4.7.stable.official.5b4e0cb0f`).
 
+## Status
+Phase 0 done (bootstrap, `h doctor`, dev tools); contract and specs A1-A9 written; spec review G1 not yet passed. Current status and the next-session checklist: `.claude/sessions/overview.md`.
+
 ## Start of every session
-1. Read the newest file in `.claude/sessions/` (latest handoff, open decisions, next steps).
-2. Read `.claude/plans/` for the current build and test plan and its status.
-3. Research lives in `.claude/research/` (`r1_*.md`, one per topic, with tested scripts under `research/scripts/`). Read the relevant report before building on its topic.
-4. At the end of a session, write `.claude/sessions/YYYY-MM-DD.md` (or `-N` for a second session that day) and update the plan status. Commit and push both.
+1. Read `.claude/sessions/overview.md` first, then the latest `.claude/sessions/session-NNN-YYYY-MM-DD.md` (handoff, open decisions, detailed next steps).
+2. Read `.claude/plans/build_and_test_plan.md` §0 (status board) and the plan sections the next step needs.
+3. Research lives in `.claude/research/` (`r1_*.md`, `r2_spikes.md`, `rp_*.md`, with tested scripts under `research/scripts/`). Read the relevant report before building on its topic.
+4. At the end of a session, write `.claude/sessions/session-NNN-YYYY-MM-DD.md` (NNN = highest + 1), update `overview.md` and plan §0. Commit and push.
 
 ## Layout
-- `.claude/sessions/`: session notes and handoffs, one per session.
-- `.claude/plans/`: harness plan, patterns addendum, build and test plan.
-- `.claude/research/`: Round 1 findings plus the scripts that produced them.
+- `.claude/sessions/`: `overview.md` (bounded snapshot) and `session-NNN-YYYY-MM-DD.md` notes, one per session.
+- `.claude/plans/`: harness plan, patterns addendum, build and test plan; `specs/` holds area specs and `REVIEW.md`.
+- `.claude/handoff/<area>/status.md`: per-area status; `.claude/agents/`: role definitions.
+- `tools/`: `bootstrap.sh`, `harness/` (the `h` CLI), `dev/` (pathguard, lock, ci, fresh-clone verify).
+- `.claude/research/`: Round 1, spikes and Round P findings plus the scripts that produced them.
 - `.claude/sources/`: summaries of source material (the article).
 
 ## Working rules (from the research)
@@ -28,7 +33,7 @@ Target engine: **Godot 4.7 stable** (`4.7.stable.official.5b4e0cb0f`).
 - MCP servers are an optional live layer, not the core. All of them run project GDScript with the user's permissions. See `r1_2_mcp.md`.
 
 ## Environment notes (Claude Code on the web)
-- The Godot binary is not in the repo. Download `Godot_v4.7-stable_linux.x86_64.zip` from `https://github.com/godotengine/godot-builds/releases/download/4.7-stable/` (works through the proxy). Xvfb is installed. Check if dotnet is needed and installed.
+- The Godot binary is not in the repo. Run `tools/bootstrap.sh` (downloads and sha256-checks the pinned zip into `~/.cache/godot-harness/`, symlinks `tools/bin/godot`), then `tools/harness/h doctor`. Xvfb is installed.
 - github.com web pages and api.github.com are blocked; `git clone`, raw.githubusercontent.com, release downloads, docs.godotengine.org, npm and pypi work. `gh` auth was invalid at last check.
 - Subagents write findings to files; do not paste large transcripts into chat.
 
