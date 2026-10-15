@@ -130,7 +130,7 @@ Semantic rules (checked in Python after the schema; violations -> rc 2, finding 
   (with did-you-mean, edit distance <= 2), checked before Godot starts.
 - `op`: `eq`/`ne` with numbers compare with `tol` (default 0); with strings/bools/null/arrays/objects exactly.
   `lt le gt ge` need numbers. `between`: `value = [lo, hi]`, inclusive, `tol` widens both ends. `exists`: path
-  resolves (value must be absent). `metric` asserts are end-of-run only (`at_end` required).
+  resolves (no `value` key). `metric` asserts are end-of-run only (`at_end` required).
 - `path`: `<entity id>` then `.key` / `[index]` segments into the entity's state (§2.4). `bind`/registered ids only.
 - `scene` must exist in the project (else rc 2). Defaults: `tick_rate` = project.godot
   `physics/common/physics_ticks_per_second` (else 60); `hash_every` 1; `golden_every` = tick_rate;
