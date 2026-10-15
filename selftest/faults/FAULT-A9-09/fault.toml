@@ -1,0 +1,12 @@
+id = "FAULT-A9-09"
+area = "A9"
+title = "coyote window of zero ticks (claimed but untested timing window)"
+fixture = "@sample"
+severity = "must"
+source = "09_sim_view_sample.md section 5"
+apply = [
+  {op = "replace", path = "sim/platformer/player_motor.gd", old = 'return roundi(tuning.coyote_time * tick_rate) # HOOK-COYOTE', new = 'return 0 # HOOK-COYOTE'},
+  {op = "write", path = "tests/a9f/test_coyote.gd", from = "files/test_coyote.gd"},
+]
+run = {verb = "test", args = ["res://tests/a9f/"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[test\.failed\]'], not_regex = [], max_seconds = 180}

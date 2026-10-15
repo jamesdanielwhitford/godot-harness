@@ -1,0 +1,7 @@
+{
+  "schema": "harness.scenario/1",
+  "description": "No asserts and no golden: run.no-asserts warning.",
+  "scene": "res://scenes/level.tscn",
+  "seed": 1,
+  "ticks": 30
+}

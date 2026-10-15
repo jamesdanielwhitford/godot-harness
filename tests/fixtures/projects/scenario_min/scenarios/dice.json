@@ -1,0 +1,10 @@
+{
+  "schema": "harness.scenario/1",
+  "description": "Seeded RNG: dice.sum depends only on the scenario seed (or --seed).",
+  "scene": "res://scenes/level.tscn",
+  "seed": 5,
+  "ticks": 100,
+  "asserts": [
+    {"at_end": true, "path": "dice.sum", "op": "ge", "value": 100}
+  ]
+}

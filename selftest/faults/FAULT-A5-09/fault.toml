@@ -1,0 +1,11 @@
+id = "FAULT-A5-09"
+area = "A5"
+title = "golden says mover.n = 599 at tick 600"
+fixture = "scenario_min"
+severity = "must"
+source = "05_scenario.md section 5"
+apply = [
+  {op = "write", path = "scenarios/mover.golden.json", from = "files/mover.golden.json"},
+]
+run = {verb = "run", args = ["res://scenarios/mover.json"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[run\.golden-mismatch\].*mover\.n'], not_regex = [], max_seconds = 60}

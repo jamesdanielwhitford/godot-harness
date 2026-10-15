@@ -1,0 +1,11 @@
+{
+  "schema": "harness.scenario/1",
+  "description": "600 ticks of the exact counter; used for goldens and perf.",
+  "scene": "res://scenes/level.tscn",
+  "seed": 3,
+  "ticks": 600,
+  "asserts": [
+    {"at_end": true, "path": "mover.n", "op": "eq", "value": 600},
+    {"at_end": true, "path": "mover.x", "op": "eq", "value": 900}
+  ]
+}

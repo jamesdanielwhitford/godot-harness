@@ -1,0 +1,39 @@
+; Engine configuration file.
+config_version=5
+
+[application]
+
+config/name="feel_min"
+run/main_scene="res://scenes/flat.tscn"
+config/features=PackedStringArray("4.7")
+
+[autoload]
+
+Harness="*res://addons/harness/harness.gd"
+Rng="*res://addons/harness/rng.gd"
+CommandBus="*res://addons/harness/command_bus.gd"
+Trace="*res://addons/harness/trace.gd"
+
+[input]
+
+left={
+"deadzone": 0.5,
+"events": []
+}
+right={
+"deadzone": 0.5,
+"events": []
+}
+jump={
+"deadzone": 0.5,
+"events": []
+}
+
+[physics]
+
+common/physics_ticks_per_second=60
+common/physics_jitter_fix=0.0
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"

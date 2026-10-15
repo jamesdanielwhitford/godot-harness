@@ -1,0 +1,11 @@
+id = "FAULT-A6-01"
+area = "A6"
+title = "HUD panel moved 20 px: compare against the approved baseline must FAIL with a pixel count"
+fixture = "shot_min"
+severity = "must"
+source = "06_visual.md section 5"
+apply = [
+  {op = "replace", path = "scripts/main.gd", old = "panel.position = Vector2(10, 10)", new = "panel.position = Vector2(30, 10)"},
+]
+run = {verb = "shot", args = ["res://scenes/main.tscn", "--compare"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[shot\.diff\].* \d+ px'], not_regex = [], max_seconds = 40}

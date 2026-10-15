@@ -1,0 +1,14 @@
+{
+  "schema": "harness.scenario/1",
+  "description": "Parameter sweep: the jump press tick is 40 + $k.",
+  "scene": "res://scenes/level.tscn",
+  "seed": 7,
+  "ticks": 120,
+  "vars": {"k": 0},
+  "inputs": [
+    {"tick": "40+$k", "action": "jump", "pressed": true, "hold": 3}
+  ],
+  "asserts": [
+    {"at_end": true, "path": "player.position", "op": "exists"}
+  ]
+}

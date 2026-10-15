@@ -1,0 +1,12 @@
+id = "FAULT-A5-05"
+area = "A5"
+title = "player loops forever after tick 30; scenario timeout 5 s"
+fixture = "scenario_min"
+severity = "must"
+source = "05_scenario.md section 5"
+apply = [
+  {op = "replace", path = "scripts/player.gd", old = "\tpass # HOOK-PHYS", new = "\tif Harness.tick() > 30:\n\t\twhile true: pass"},
+  {op = "write", path = "harness.toml", text = "[timeouts]\nscenario = 5\n"},
+]
+run = {verb = "run", args = ["res://scenarios/jump.json"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[harness\.hang\]'], not_regex = [], max_seconds = 40}

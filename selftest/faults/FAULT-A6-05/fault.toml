@@ -1,0 +1,9 @@
+id = "FAULT-A6-05"
+area = "A6"
+title = "--headless cannot render images: rc 4 ERROR"
+fixture = "shot_min"
+severity = "must"
+source = "06_visual.md section 5"
+apply = []
+run = {verb = "shot", args = ["res://scenes/main.tscn", "--headless"], env = {}, no_project = false}
+expect = {rc = 4, verdict = "ERROR", regex = ['headless'], not_regex = [], max_seconds = 5}

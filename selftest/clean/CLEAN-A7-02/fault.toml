@@ -1,0 +1,9 @@
+id = "CLEAN-A7-02"
+area = "A7"
+title = "clean feel_min is rate independent over 30,60,120"
+fixture = "feel_min"
+severity = "must"
+source = "07_feel.md section 5"
+apply = []
+run = {verb = "trace", args = ["res://feel/player.feel.json", "--rates", "30,60,120"], env = {}, no_project = false}
+expect = {rc = 0, verdict = "PASS", regex = ['^PASS trace '], not_regex = [], max_seconds = 150}

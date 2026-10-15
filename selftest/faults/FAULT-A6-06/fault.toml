@@ -1,0 +1,11 @@
+id = "FAULT-A6-06"
+area = "A6"
+title = "baseline meta status is proposed, not approved: compare must FAIL baseline-unapproved"
+fixture = "shot_min"
+severity = "must"
+source = "06_visual.md section 5"
+apply = [
+  {op = "replace", path = "baselines/scenes/main/main-t30.json", old = "\"status\": \"approved\"", new = "\"status\": \"proposed\""},
+]
+run = {verb = "shot", args = ["res://scenes/main.tscn", "--compare"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[shot\.baseline-unapproved\]'], not_regex = [], max_seconds = 40}

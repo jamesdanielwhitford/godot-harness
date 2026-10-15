@@ -1,0 +1,23 @@
+{
+  "schema": "harness.scenario/1",
+  "scene": "res://scenes/ledge.tscn",
+  "seed": 7,
+  "ticks": "$t0+$k+40",
+  "vars": {
+    "t0": 200,
+    "k": 0
+  },
+  "inputs": [
+    {
+      "tick": 1,
+      "action": "right",
+      "pressed": true
+    },
+    {
+      "tick": "$t0+$k",
+      "action": "jump",
+      "pressed": true,
+      "hold": 3
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+id = "FAULT-A9-11"
+area = "A9"
+title = "global RNG call in a new sim file (lint.det-global-rng error)"
+fixture = "@sample"
+severity = "must"
+source = "09_sim_view_sample.md section 5"
+apply = [
+  {op = "write", path = "sim/tactics/noise.gd", text = "extends RefCounted\nfunc f() -> float:\n\treturn randf()\n"},
+]
+run = {verb = "lint", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['noise\.gd:3: \[lint\.det-global-rng\] error'], not_regex = [], max_seconds = 15}

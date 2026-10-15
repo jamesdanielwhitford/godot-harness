@@ -1,0 +1,11 @@
+id = "FAULT-A5-11"
+area = "A5"
+title = "unseeded RandomNumberGenerator.new() field used in physics"
+fixture = "scenario_min"
+severity = "nice"
+source = "05_scenario.md section 5"
+apply = [
+  {op = "replace", path = "scripts/player.gd", old = "\tpass # HOOK-PHYS", new = "\tposition.x += own_rng.randf() * 0.01"},
+]
+run = {verb = "run", args = ["res://scenarios/jump.json", "--twice"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['identical-runs'], not_regex = [], max_seconds = 60}

@@ -1,0 +1,11 @@
+id = "FAULT-A9-01"
+area = "A9"
+title = "NodePath field in the node-free sim world (lint.sim-node)"
+fixture = "@sample"
+severity = "must"
+source = "09_sim_view_sample.md section 5"
+apply = [
+  {op = "replace", path = "sim/tactics/tactics_world.gd", old = 'var debug_note: String = "" # HOOK-SIM-FIELD', new = 'var debug_ref: NodePath = NodePath("../View") # HOOK-SIM-FIELD'},
+]
+run = {verb = "lint", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['tactics_world\.gd:\d+: \[lint\.sim-node\]'], not_regex = [], max_seconds = 15}

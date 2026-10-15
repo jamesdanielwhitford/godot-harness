@@ -1,0 +1,11 @@
+id = "FAULT-A9-07"
+area = "A9"
+title = "SceneManager drops a goto issued during a transition (the rp_1 swallow guard)"
+fixture = "@sample"
+severity = "must"
+source = "09_sim_view_sample.md section 5"
+apply = [
+  {op = "replace", path = "autoloads/scene_manager.gd", old = '_pending = path # HOOK-PENDING', new = 'return # HOOK-PENDING'},
+]
+run = {verb = "run", args = ["res://scenarios/flow/fade_request.json"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[run\.assert\].*game\.level'], not_regex = [], max_seconds = 120}

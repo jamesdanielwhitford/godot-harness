@@ -1,0 +1,14 @@
+{
+  "schema": "harness.scenario/1",
+  "description": "Binds plain nodes without _harness_state as entities.",
+  "scene": "res://scenes/level.tscn",
+  "seed": 1,
+  "ticks": 30,
+  "bind": {
+    "box": {"node": "Box", "props": ["position", "visible"]},
+    "player2": {"node": "Player", "props": ["is_on_floor()"]}
+  },
+  "asserts": [
+    {"at_end": true, "path": "box.position.x", "op": "eq", "value": 50}
+  ]
+}

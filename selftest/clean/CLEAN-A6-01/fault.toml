@@ -1,0 +1,9 @@
+id = "CLEAN-A6-01"
+area = "A6"
+title = "unmodified shot_min compares identical to its approved baseline"
+fixture = "shot_min"
+severity = "must"
+source = "06_visual.md section 5"
+apply = []
+run = {verb = "shot", args = ["res://scenes/main.tscn", "--compare"], env = {}, no_project = false}
+expect = {rc = 0, verdict = "PASS", regex = ['^OK +main-t30: identical'], not_regex = [], max_seconds = 40}

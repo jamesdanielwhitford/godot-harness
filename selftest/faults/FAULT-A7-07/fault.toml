@@ -1,0 +1,11 @@
+id = "FAULT-A7-07"
+area = "A7"
+title = "agent self-approved targets are not approvals"
+fixture = "feel_min"
+severity = "must"
+source = "07_feel.md section 5"
+apply = [
+  {op = "replace", path = "feel/targets.tres", old = "approved_by = \"fixture-human\"", new = "approved_by = \"claude\"", count = 11},
+]
+run = {verb = "trace", args = ["res://feel/player.feel.json"], env = {}, no_project = false}
+expect = {rc = 5, verdict = "WARN", regex = ['\[feel\.unapproved\].*11 of 11'], not_regex = [], max_seconds = 60}

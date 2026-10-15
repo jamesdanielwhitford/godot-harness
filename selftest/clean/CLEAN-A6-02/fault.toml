@@ -1,0 +1,11 @@
+id = "CLEAN-A6-02"
+area = "A6"
+title = "unseeded CPUParticles2D is stable under --twice because the runner seeds the global RNG"
+fixture = "shot_min"
+severity = "must"
+source = "06_visual.md section 5"
+apply = [
+  {op = "replace", path = "scripts/main.gd", old = "\tpass # HOOK-READY", new = "\tvar p := CPUParticles2D.new()\n\tp.amount = 50\n\tp.spread = 180.0\n\tp.initial_velocity_min = 30.0\n\tp.initial_velocity_max = 60.0\n\tp.position = Vector2(320, 180)\n\tp.emitting = true\n\tadd_child(p)"},
+]
+run = {verb = "shot", args = ["res://scenes/main.tscn", "--tick", "30", "--twice"], env = {}, no_project = false}
+expect = {rc = 0, verdict = "PASS", regex = ['^twice: identical'], not_regex = [], max_seconds = 60}

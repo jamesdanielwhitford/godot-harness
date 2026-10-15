@@ -1,0 +1,9 @@
+id = "CLEAN-A7-01"
+area = "A7"
+title = "clean feel_min passes all 11 targets"
+fixture = "feel_min"
+severity = "must"
+source = "07_feel.md section 5"
+apply = []
+run = {verb = "trace", args = ["res://feel/player.feel.json"], env = {}, no_project = false}
+expect = {rc = 0, verdict = "PASS", regex = ['^PASS trace 11/11 targets met'], not_regex = [], max_seconds = 60}

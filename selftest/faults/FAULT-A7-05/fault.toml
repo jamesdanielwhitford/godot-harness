@@ -1,0 +1,11 @@
+id = "FAULT-A7-05"
+area = "A7"
+title = "no variable jump height: cut ratio near 1"
+fixture = "feel_min"
+severity = "must"
+source = "07_feel.md section 5"
+apply = [
+  {op = "replace", path = "scripts/player.gd", old = "const JUMP_CUT := true # FEEL-CUT", new = "const JUMP_CUT := false # FEEL-CUT"},
+]
+run = {verb = "trace", args = ["res://feel/player.feel.json"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['^FAIL +jump\.cut_ratio:'], not_regex = ['^FAIL +(?!jump\.cut_ratio:)[a-z]+\.[a-z0-9_.]+:'], max_seconds = 60}

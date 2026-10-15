@@ -1,0 +1,54 @@
+{
+  "schema": "harness.trace/1",
+  "scenario": "synthetic/camera_step",
+  "tick_rate": 60,
+  "seed": 7,
+  "ticks": 20,
+  "rows": 21,
+  "columns": [
+    {
+      "name": "player.position.x",
+      "node": "player",
+      "prop": "position.x",
+      "type": "float"
+    },
+    {
+      "name": "player.position.y",
+      "node": "player",
+      "prop": "position.y",
+      "type": "float"
+    },
+    {
+      "name": "camera.get_screen_center_position.x",
+      "node": "camera",
+      "prop": "get_screen_center_position.x",
+      "type": "float"
+    },
+    {
+      "name": "camera.get_screen_center_position.y",
+      "node": "camera",
+      "prop": "get_screen_center_position.y",
+      "type": "float"
+    },
+    {
+      "name": "camera.offset.x",
+      "node": "camera",
+      "prop": "offset.x",
+      "type": "float"
+    },
+    {
+      "name": "camera.offset.y",
+      "node": "camera",
+      "prop": "offset.y",
+      "type": "float"
+    },
+    {
+      "name": "in.right",
+      "node": "in",
+      "prop": "right",
+      "type": "float"
+    }
+  ],
+  "vars": {},
+  "godot": "4.7.stable.official.5b4e0cb0f"
+}

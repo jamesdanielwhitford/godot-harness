@@ -1,0 +1,24 @@
+{
+  "schema": "harness.scenario/1",
+  "scene": "res://scenes/flat.tscn",
+  "seed": 7,
+  "ticks": "$t0+40",
+  "vars": {
+    "t0": 200,
+    "k": 0
+  },
+  "inputs": [
+    {
+      "tick": 10,
+      "action": "jump",
+      "pressed": true,
+      "hold": 3
+    },
+    {
+      "tick": "$t0-$k",
+      "action": "jump",
+      "pressed": true,
+      "hold": 1
+    }
+  ]
+}

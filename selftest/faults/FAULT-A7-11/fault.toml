@@ -1,0 +1,11 @@
+id = "FAULT-A7-11"
+area = "A7"
+title = "targets file missing"
+fixture = "feel_min"
+severity = "must"
+source = "07_feel.md section 5"
+apply = [
+  {op = "delete", path = "feel/targets.tres"},
+]
+run = {verb = "trace", args = ["res://feel/player.feel.json"], env = {}, no_project = false}
+expect = {rc = 2, verdict = "ERROR", regex = ['\[feel\.targets\]'], not_regex = [], max_seconds = 30}

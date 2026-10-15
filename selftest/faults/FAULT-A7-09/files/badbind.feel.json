@@ -1,0 +1,103 @@
+{
+  "schema": "harness.feel/1",
+  "description": "feel_min fixture suite (A7)",
+  "targets": "res://feel/targets.tres",
+  "trace": {
+    "player": {
+      "node": "Playr"
+    },
+    "camera": {
+      "node": "Player/Camera"
+    }
+  },
+  "marks": [
+    "state"
+  ],
+  "probes": [
+    {
+      "id": "run",
+      "scenario": "res://feel/run.json",
+      "metrics": [
+        {
+          "metric": "run.max_speed"
+        },
+        {
+          "metric": "run.accel_time"
+        },
+        {
+          "metric": "run.decel_time"
+        }
+      ]
+    },
+    {
+      "id": "jump",
+      "scenario": "res://feel/jump.json",
+      "metrics": [
+        {
+          "metric": "jump.apex_px"
+        },
+        {
+          "metric": "jump.time_to_apex"
+        },
+        {
+          "metric": "jump.fall_rise_ratio"
+        }
+      ]
+    },
+    {
+      "id": "tap",
+      "scenario": "res://feel/tap.json",
+      "metrics": [
+        {
+          "metric": "jump.apex_px",
+          "name": "jump.tap_apex_px"
+        }
+      ]
+    },
+    {
+      "id": "coyote",
+      "scenario": "res://feel/coyote.json",
+      "sweep": {
+        "anchor": "leave_floor"
+      },
+      "metrics": [
+        {
+          "metric": "jump.coyote_window"
+        }
+      ]
+    },
+    {
+      "id": "buffer",
+      "scenario": "res://feel/buffer.json",
+      "sweep": {
+        "anchor": "land"
+      },
+      "metrics": [
+        {
+          "metric": "jump.buffer_window"
+        }
+      ]
+    },
+    {
+      "id": "camera",
+      "scenario": "res://feel/camera.json",
+      "metrics": [
+        {
+          "metric": "camera.settle_time"
+        },
+        {
+          "metric": "camera.lag_px"
+        }
+      ]
+    }
+  ],
+  "derived": [
+    {
+      "name": "jump.cut_ratio",
+      "ratio": [
+        "jump.tap_apex_px",
+        "jump.apex_px"
+      ]
+    }
+  ]
+}

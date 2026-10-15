@@ -1,0 +1,11 @@
+id = "FAULT-A7-09"
+area = "A7"
+title = "suite binds a node that does not exist"
+fixture = "feel_min"
+severity = "must"
+source = "07_feel.md section 5"
+apply = [
+  {op = "write", path = "feel/badbind.feel.json", from = "files/badbind.feel.json"},
+]
+run = {verb = "trace", args = ["res://feel/badbind.feel.json"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[feel\.bind\].*Playr'], not_regex = [], max_seconds = 60}

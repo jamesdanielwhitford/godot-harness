@@ -1,0 +1,11 @@
+id = "FAULT-A5-04"
+area = "A5"
+title = "command targets an entity id that is not registered"
+fixture = "scenario_min"
+severity = "must"
+source = "05_scenario.md section 5"
+apply = [
+  {op = "write", path = "scenarios/ghost.json", from = "files/ghost.json"},
+]
+run = {verb = "run", args = ["res://scenarios/ghost.json"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[run\.unknown-target\].*ghost'], not_regex = [], max_seconds = 60}

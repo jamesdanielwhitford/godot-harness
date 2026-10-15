@@ -1,0 +1,11 @@
+id = "FAULT-A9-04"
+area = "A9"
+title = "sim rules reach for the scene tree (lint.sim-node)"
+fixture = "@sample"
+severity = "must"
+source = "09_sim_view_sample.md section 5"
+apply = [
+  {op = "replace", path = "sim/tactics/tactics_rules.gd", old = 'pass # HOOK-RULES-APPLY', new = 'var _t = get_tree()'},
+]
+run = {verb = "lint", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['tactics_rules\.gd:\d+: \[lint\.sim-node\]'], not_regex = [], max_seconds = 15}

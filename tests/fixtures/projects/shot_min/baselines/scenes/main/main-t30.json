@@ -1,0 +1,32 @@
+{
+  "schema": "harness.baseline/1",
+  "name": "main-t30",
+  "target": "res://scenes/main.tscn",
+  "tick": 30,
+  "capture": {
+    "size": null,
+    "crop": null,
+    "node": null,
+    "hide": [],
+    "hide_layers": [],
+    "seed": 0,
+    "fps": 60
+  },
+  "image": {
+    "w": 640,
+    "h": 360,
+    "sha256": "51d6d7e9d169669542bf773956b0bda50a3ec5186697f3c705f4db82f4109aef"
+  },
+  "env": {
+    "godot": "4.7.stable.official.5b4e0cb0f",
+    "renderer": "gl_compatibility",
+    "adapter": "llvmpipe (LLVM 20.1.2, 256 bits)",
+    "api": "4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4"
+  },
+  "status": "approved",
+  "proposed_at": "2026-10-15T16:30:00Z",
+  "proposed_by": "T6",
+  "approved_at": "2026-10-15T16:31:00Z",
+  "approved_by": "fixture T6",
+  "note": "made with tests/fixtures/tools/capture_ref.gd"
+}

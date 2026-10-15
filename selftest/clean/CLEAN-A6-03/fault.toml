@@ -1,0 +1,9 @@
+id = "CLEAN-A6-03"
+area = "A6"
+title = "the clean hud scene has no layout findings at the four default sizes"
+fixture = "shot_min"
+severity = "must"
+source = "06_visual.md section 5"
+apply = []
+run = {verb = "shot", args = ["res://scenes/hud.tscn", "--layout"], env = {}, no_project = false}
+expect = {rc = 0, verdict = "PASS", regex = ['^PASS shot'], not_regex = [], max_seconds = 30}

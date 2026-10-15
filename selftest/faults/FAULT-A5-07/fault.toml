@@ -1,0 +1,11 @@
+id = "FAULT-A5-07"
+area = "A5"
+title = "runtime SCRIPT ERROR (null call) at tick 50 while all asserts pass"
+fixture = "scenario_min"
+severity = "must"
+source = "05_scenario.md section 5"
+apply = [
+  {op = "replace", path = "scripts/player.gd", old = "\tpass # HOOK-PHYS", new = "\tif Harness.tick() == 50:\n\t\tvar n = null\n\t\tn.foo()"},
+]
+run = {verb = "run", args = ["res://scenarios/jump.json"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[godot\.script-error\]'], not_regex = [], max_seconds = 60}

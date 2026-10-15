@@ -1,0 +1,11 @@
+id = "FAULT-A5-01"
+area = "A5"
+title = "global randf() in _physics_process makes the run nondeterministic"
+fixture = "scenario_min"
+severity = "must"
+source = "05_scenario.md section 5"
+apply = [
+  {op = "replace", path = "scripts/player.gd", old = "\tpass # HOOK-PHYS", new = "\tposition.x += randf() * 0.01"},
+]
+run = {verb = "run", args = ["res://scenarios/jump.json", "--twice"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[run\.nondeterministic\]', 'global-rng'], not_regex = [], max_seconds = 30}

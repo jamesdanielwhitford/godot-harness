@@ -1,0 +1,9 @@
+id = "CLEAN-A9-01"
+area = "A9"
+title = "unmodified sample passes h check"
+fixture = "@sample"
+severity = "must"
+source = "09_sim_view_sample.md section 5"
+apply = []
+run = {verb = "check", args = [], env = {}, no_project = false}
+expect = {rc = 0, verdict = "PASS", regex = [], not_regex = ['\] error:'], max_seconds = 180}

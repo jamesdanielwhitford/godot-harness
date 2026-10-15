@@ -1,0 +1,12 @@
+id = "FAULT-A9-10"
+area = "A9"
+title = "SimView.apply_events no longer reconciles (live view diverges from rebuild)"
+fixture = "@sample"
+severity = "must"
+source = "09_sim_view_sample.md section 5"
+apply = [
+  {op = "replace", path = "view/core/sim_view.gd", old = '_reconcile() # HOOK-VIEW-RECONCILE', new = 'pass # HOOK-VIEW-RECONCILE'},
+  {op = "write", path = "tests/a9f/test_rebuild_digest.gd", from = "files/test_rebuild_digest.gd"},
+]
+run = {verb = "test", args = ["res://tests/a9f/"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[test\.failed\]'], not_regex = [], max_seconds = 180}

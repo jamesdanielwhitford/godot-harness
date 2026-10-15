@@ -1,0 +1,11 @@
+id = "FAULT-A6-07"
+area = "A6"
+title = "approved baseline PNG replaced after approval: sha256 no longer matches the meta (tampered)"
+fixture = "shot_min"
+severity = "must"
+source = "06_visual.md section 5"
+apply = [
+  {op = "write", path = "baselines/scenes/main/main-t30.png", from = "files/other.png"},
+]
+run = {verb = "shot", args = ["res://scenes/main.tscn", "--compare"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[shot\.baseline-tampered\]'], not_regex = [], max_seconds = 40}

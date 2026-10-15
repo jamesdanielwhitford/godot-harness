@@ -1,0 +1,11 @@
+id = "FAULT-A6-09"
+area = "A6"
+title = "runtime SCRIPT ERROR in _ready during a capture: FAIL even though a PNG may be written"
+fixture = "shot_min"
+severity = "must"
+source = "06_visual.md section 5"
+apply = [
+  {op = "replace", path = "scripts/main.gd", old = "\tpass # HOOK-READY", new = "\tvar n = null\n\tn.foo()"},
+]
+run = {verb = "shot", args = ["res://scenes/main.tscn"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[godot\.script-error\]'], not_regex = [], max_seconds = 40}

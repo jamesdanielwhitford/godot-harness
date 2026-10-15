@@ -1,0 +1,11 @@
+id = "FAULT-A9-08"
+area = "A9"
+title = "player reads ui_left/ui_right instead of the named actions"
+fixture = "@sample"
+severity = "must"
+source = "09_sim_view_sample.md section 5"
+apply = [
+  {op = "replace", path = "game/platformer/player.gd", old = 'var axis := Input.get_axis("move_left", "move_right") # HOOK-INPUT-AXIS', new = 'var axis := Input.get_axis("ui_left", "ui_right") # HOOK-INPUT-AXIS'},
+]
+run = {verb = "run", args = ["res://scenarios/platformer/run.json"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[run\.assert\].*player\.velocity\.x'], not_regex = [], max_seconds = 120}

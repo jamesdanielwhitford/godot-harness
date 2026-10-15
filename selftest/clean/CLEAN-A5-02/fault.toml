@@ -1,0 +1,10 @@
+id = "CLEAN-A5-02"
+area = "A5"
+title = "jump.json passes all 6 asserts"
+fixture = "scenario_min"
+severity = "must"
+source = "05_scenario.md section 5"
+apply = [
+]
+run = {verb = "run", args = ["res://scenarios/jump.json"], env = {}, no_project = false}
+expect = {rc = 0, verdict = "PASS", regex = ['^PASS run', '^asserts: 6 total, 6 pass'], not_regex = [], max_seconds = 60}

@@ -1,0 +1,9 @@
+{"$id":"harness.sim-snapshot/1","type":"object","additionalProperties":false,
+ "required":["schema","version","tick","next_id","rng","things","data"],
+ "properties":{"schema":{"type":"string","pattern":"^[a-z][a-z0-9_.]*$"},"version":{"type":"integer","minimum":1},
+  "tick":{"type":"integer","minimum":0},"next_id":{"type":"integer","minimum":1},
+  "rng":{"type":"object","additionalProperties":false,"required":["seed","state"],
+   "properties":{"seed":{"type":"string","pattern":"^-?\\d+$"},"state":{"type":"string","pattern":"^-?\\d+$"}}},
+  "things":{"type":"object","propertyNames":{"pattern":"^t[1-9][0-9]*$"},"additionalProperties":{"type":"object",
+   "required":["id","kind"],"properties":{"id":{"type":"integer","minimum":1},"kind":{"type":"string"}}}},
+  "data":{"type":"object"}}}

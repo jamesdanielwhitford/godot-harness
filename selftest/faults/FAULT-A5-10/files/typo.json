@@ -1,0 +1,99 @@
+{
+  "schema": "harness.scenario/1",
+  "description": "Player runs right at half strength, jumps at tick 40 (hold 3), is teleported at tick 90.",
+  "scene": "res://scenes/level.tscn",
+  "seed": 7,
+  "ticks": 120,
+  "inputs": [
+    {
+      "tick": 1,
+      "action": "right",
+      "strength": 0.5
+    },
+    {
+      "tick": 40,
+      "action": "jmup",
+      "pressed": true,
+      "hold": 3
+    }
+  ],
+  "commands": [
+    {
+      "tick": 90,
+      "type": "teleport",
+      "target": "player",
+      "value": {
+        "x": 500,
+        "y": 100
+      }
+    }
+  ],
+  "dumps": [
+    {
+      "tick": 89,
+      "what": [
+        "player"
+      ]
+    },
+    {
+      "tick": 90,
+      "what": [
+        "player"
+      ]
+    },
+    {
+      "at_end": true,
+      "what": [
+        "*"
+      ]
+    }
+  ],
+  "asserts": [
+    {
+      "tick": 60,
+      "path": "player.position.x",
+      "op": "between",
+      "value": [
+        99,
+        101
+      ]
+    },
+    {
+      "tick": 89,
+      "path": "player.position.x",
+      "op": "lt",
+      "value": 500
+    },
+    {
+      "tick": 90,
+      "path": "player.position.x",
+      "op": "between",
+      "value": [
+        500,
+        502
+      ]
+    },
+    {
+      "tick": 30,
+      "path": "player.on_floor",
+      "op": "eq",
+      "value": true
+    },
+    {
+      "during": [
+        40,
+        45
+      ],
+      "quant": "any",
+      "path": "player.velocity.y",
+      "op": "lt",
+      "value": -300
+    },
+    {
+      "at_end": true,
+      "metric": "events.jump_pressed",
+      "op": "eq",
+      "value": 1
+    }
+  ]
+}

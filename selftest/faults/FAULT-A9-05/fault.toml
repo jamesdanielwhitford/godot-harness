@@ -1,0 +1,11 @@
+id = "FAULT-A9-05"
+area = "A9"
+title = "attack damage uses the wall clock instead of world.rng (nondeterministic autoplay)"
+fixture = "@sample"
+severity = "must"
+source = "09_sim_view_sample.md section 5"
+apply = [
+  {op = "replace", path = "sim/tactics/tactics_rules.gd", old = 'var bonus := world.rng.randi_range(0, 1) # HOOK-DAMAGE-RNG', new = 'var bonus := Time.get_ticks_usec() % 2 # HOOK-DAMAGE-RNG'},
+]
+run = {verb = "run", args = ["res://scenarios/tactics/autoplay.json", "--twice"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[run\.(nondeterministic|golden-mismatch)\]'], not_regex = [], max_seconds = 120}

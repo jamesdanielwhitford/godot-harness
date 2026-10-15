@@ -1,0 +1,12 @@
+id = "FAULT-A9-02"
+area = "A9"
+title = "view mutates the world from an event handler (read-only view test fails)"
+fixture = "@sample"
+severity = "must"
+source = "09_sim_view_sample.md section 5"
+apply = [
+  {op = "replace", path = "game/tactics/tactics_view.gd", old = 'pass # HOOK-VIEW-EVENT', new = 'if world.has_thing(1): world.get_thing(1).set("hp", 99)'},
+  {op = "write", path = "tests/a9f/test_view_readonly.gd", from = "files/test_view_readonly.gd"},
+]
+run = {verb = "test", args = ["res://tests/a9f/"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[test\.failed\]'], not_regex = [], max_seconds = 180}

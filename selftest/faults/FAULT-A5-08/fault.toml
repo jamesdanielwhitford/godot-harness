@@ -1,0 +1,11 @@
+id = "FAULT-A5-08"
+area = "A5"
+title = "_process delta used in gameplay state"
+fixture = "scenario_min"
+severity = "must"
+source = "05_scenario.md section 5"
+apply = [
+  {op = "replace", path = "scripts/player.gd", old = "\tpass # HOOK-PROCESS", new = "\ttw_x += delta * 3.0"},
+]
+run = {verb = "run", args = ["res://scenarios/jump.json", "--twice"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[run\.nondeterministic\]', 'frame-rate'], not_regex = [], max_seconds = 60}

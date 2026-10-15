@@ -1,0 +1,11 @@
+id = "FAULT-A7-04"
+area = "A7"
+title = "no jump buffer: window 0 ticks"
+fixture = "feel_min"
+severity = "must"
+source = "07_feel.md section 5"
+apply = [
+  {op = "replace", path = "scripts/player.gd", old = "const BUFFER_S := 0.1 # FEEL-BUFFER", new = "const BUFFER_S := 0.0 # FEEL-BUFFER"},
+]
+run = {verb = "trace", args = ["res://feel/player.feel.json"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['^FAIL +jump\.buffer_window: 0 ticks'], not_regex = ['^FAIL +(?!jump\.buffer_window:)[a-z]+\.[a-z0-9_.]+:'], max_seconds = 60}

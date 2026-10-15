@@ -1,0 +1,11 @@
+id = "FAULT-A5-02"
+area = "A5"
+title = "idle-mode Tween started in _ready diverges between frame rates"
+fixture = "scenario_min"
+severity = "must"
+source = "05_scenario.md section 5"
+apply = [
+  {op = "replace", path = "scripts/player.gd", old = "\tpass # HOOK-READY", new = "\tcreate_tween().set_process_mode(Tween.TWEEN_PROCESS_IDLE).tween_property(self, \"tw_x\", 100.0, 1.3)"},
+]
+run = {verb = "run", args = ["res://scenarios/jump.json", "--twice"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[run\.nondeterministic\]', 'frame-rate'], not_regex = [], max_seconds = 60}

@@ -1,0 +1,11 @@
+id = "FAULT-A6-08"
+area = "A6"
+title = "Health label placed at (1300,600): extends past the right edge at 1280x720 (layout-offscreen)"
+fixture = "shot_min"
+severity = "must"
+source = "06_visual.md section 5"
+apply = [
+  {op = "replace", path = "scripts/hud.gd", old = "\tpass # HOOK-HUD", new = "\t$Health.position = Vector2(1300, 600)"},
+]
+run = {verb = "shot", args = ["res://scenes/hud.tscn", "--layout", "--sizes", "1280x720"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[shot\.layout-offscreen\].*Health'], not_regex = [], max_seconds = 40}

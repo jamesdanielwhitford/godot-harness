@@ -1,0 +1,11 @@
+id = "FAULT-A5-10"
+area = "A5"
+title = "input action typo jmup"
+fixture = "scenario_min"
+severity = "must"
+source = "05_scenario.md section 5"
+apply = [
+  {op = "write", path = "scenarios/typo.json", from = "files/typo.json"},
+]
+run = {verb = "run", args = ["res://scenarios/typo.json"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[run\.unknown-action\].*jump'], not_regex = [], max_seconds = 60}

@@ -1,0 +1,11 @@
+id = "FAULT-A6-03"
+area = "A6"
+title = "very long title in a clip_text Label does not fit at 640x360 (layout-clipped)"
+fixture = "shot_min"
+severity = "must"
+source = "06_visual.md section 5"
+apply = [
+  {op = "replace", path = "scripts/hud.gd", old = "\tpass # HOOK-HUD", new = "\t$Title.text = \"THE VERY LONG GAME TITLE THAT DOES NOT FIT ON SMALL SCREENS AT ALL, NOT EVEN CLOSE\""},
+]
+run = {verb = "shot", args = ["res://scenes/hud.tscn", "--layout", "--sizes", "640x360"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[shot\.layout-clipped\].*Title'], not_regex = [], max_seconds = 40}

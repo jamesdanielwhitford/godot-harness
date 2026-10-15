@@ -1,0 +1,48 @@
+{
+  "schema": "harness.trace/1",
+  "scenario": "synthetic/run_ramp",
+  "tick_rate": 60,
+  "seed": 7,
+  "ticks": 30,
+  "rows": 31,
+  "columns": [
+    {
+      "name": "player.position.x",
+      "node": "player",
+      "prop": "position.x",
+      "type": "float"
+    },
+    {
+      "name": "player.position.y",
+      "node": "player",
+      "prop": "position.y",
+      "type": "float"
+    },
+    {
+      "name": "player.velocity.x",
+      "node": "player",
+      "prop": "velocity.x",
+      "type": "float"
+    },
+    {
+      "name": "player.velocity.y",
+      "node": "player",
+      "prop": "velocity.y",
+      "type": "float"
+    },
+    {
+      "name": "player.is_on_floor",
+      "node": "player",
+      "prop": "is_on_floor",
+      "type": "float"
+    },
+    {
+      "name": "in.right",
+      "node": "in",
+      "prop": "right",
+      "type": "float"
+    }
+  ],
+  "vars": {},
+  "godot": "4.7.stable.official.5b4e0cb0f"
+}

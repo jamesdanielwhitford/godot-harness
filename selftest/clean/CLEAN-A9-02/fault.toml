@@ -1,0 +1,9 @@
+id = "CLEAN-A9-02"
+area = "A9"
+title = "unmodified sample: every scenario passes twice"
+fixture = "@sample"
+severity = "must"
+source = "09_sim_view_sample.md section 5"
+apply = []
+run = {verb = "run", args = ["res://scenarios/", "--twice"], env = {}, no_project = false}
+expect = {rc = 0, verdict = "PASS", regex = ['scenarios passed'], not_regex = ['\] error:'], max_seconds = 120}

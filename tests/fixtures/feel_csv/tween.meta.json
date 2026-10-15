@@ -1,0 +1,24 @@
+{
+  "schema": "harness.trace/1",
+  "scenario": "synthetic/tween",
+  "tick_rate": 60,
+  "seed": 7,
+  "ticks": 20,
+  "rows": 21,
+  "columns": [
+    {
+      "name": "box.position.x",
+      "node": "box",
+      "prop": "position.x",
+      "type": "float"
+    },
+    {
+      "name": "in.go",
+      "node": "in",
+      "prop": "go",
+      "type": "float"
+    }
+  ],
+  "vars": {},
+  "godot": "4.7.stable.official.5b4e0cb0f"
+}

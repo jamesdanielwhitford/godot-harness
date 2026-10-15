@@ -1,0 +1,11 @@
+id = "FAULT-A5-06"
+area = "A5"
+title = "_harness_state returns a NodePath"
+fixture = "scenario_min"
+severity = "must"
+source = "05_scenario.md section 5"
+apply = [
+  {op = "replace", path = "scripts/player.gd", old = "\tvar extra := {} # HOOK-STATE", new = "\tvar extra := {\"target\": NodePath(\"../Box\")}"},
+]
+run = {verb = "run", args = ["res://scenarios/jump.json"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[run\.state-nonserializable\].*player'], not_regex = [], max_seconds = 60}

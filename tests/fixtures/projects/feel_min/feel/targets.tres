@@ -1,0 +1,119 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://addons/harness/feel_target.gd" id="1_target"]
+[ext_resource type="Script" path="res://addons/harness/feel_targets.gd" id="2_targets"]
+
+[sub_resource type="Resource" id="Resource_t1"]
+script = ExtResource("1_target")
+metric = "run.max_speed"
+min_value = 200.0
+max_value = 240.0
+unit = "px/s"
+approved_by = "fixture-human"
+approved_on = "2026-10-01"
+note = ""
+
+[sub_resource type="Resource" id="Resource_t2"]
+script = ExtResource("1_target")
+metric = "run.accel_time"
+min_value = 4.0
+max_value = 8.0
+unit = "ticks"
+approved_by = "fixture-human"
+approved_on = "2026-10-01"
+note = ""
+
+[sub_resource type="Resource" id="Resource_t3"]
+script = ExtResource("1_target")
+metric = "run.decel_time"
+min_value = 4.0
+max_value = 8.0
+unit = "ticks"
+approved_by = "fixture-human"
+approved_on = "2026-10-01"
+note = ""
+
+[sub_resource type="Resource" id="Resource_t4"]
+script = ExtResource("1_target")
+metric = "jump.apex_px"
+min_value = 70.0
+max_value = 95.0
+unit = "px"
+approved_by = "fixture-human"
+approved_on = "2026-10-01"
+note = ""
+
+[sub_resource type="Resource" id="Resource_t5"]
+script = ExtResource("1_target")
+metric = "jump.time_to_apex"
+min_value = 0.3
+max_value = 0.5
+unit = "s"
+approved_by = "fixture-human"
+approved_on = "2026-10-01"
+note = ""
+
+[sub_resource type="Resource" id="Resource_t6"]
+script = ExtResource("1_target")
+metric = "jump.fall_rise_ratio"
+min_value = 0.5
+max_value = 0.9
+unit = "ratio"
+approved_by = "fixture-human"
+approved_on = "2026-10-01"
+note = ""
+
+[sub_resource type="Resource" id="Resource_t7"]
+script = ExtResource("1_target")
+metric = "jump.cut_ratio"
+min_value = 0.05
+max_value = 0.7
+unit = "ratio"
+approved_by = "fixture-human"
+approved_on = "2026-10-01"
+note = ""
+
+[sub_resource type="Resource" id="Resource_t8"]
+script = ExtResource("1_target")
+metric = "jump.coyote_window"
+min_value = 4.0
+max_value = 8.0
+unit = "ticks"
+approved_by = "fixture-human"
+approved_on = "2026-10-01"
+note = ""
+
+[sub_resource type="Resource" id="Resource_t9"]
+script = ExtResource("1_target")
+metric = "jump.buffer_window"
+min_value = 3.0
+max_value = 8.0
+unit = "ticks"
+approved_by = "fixture-human"
+approved_on = "2026-10-01"
+note = ""
+
+[sub_resource type="Resource" id="Resource_t10"]
+script = ExtResource("1_target")
+metric = "camera.settle_time"
+min_value = 20.0
+max_value = 120.0
+unit = "ticks"
+approved_by = "fixture-human"
+approved_on = "2026-10-01"
+note = ""
+
+[sub_resource type="Resource" id="Resource_t11"]
+script = ExtResource("1_target")
+metric = "camera.lag_px"
+min_value = 0.0
+max_value = 70.0
+unit = "px"
+approved_by = "fixture-human"
+approved_on = "2026-10-01"
+note = ""
+
+[resource]
+script = ExtResource("2_targets")
+tick_rate = 60
+targets = Array[Resource]([SubResource("Resource_t1"), SubResource("Resource_t2"), SubResource("Resource_t3"), SubResource("Resource_t4"), SubResource("Resource_t5"), SubResource("Resource_t6"), SubResource("Resource_t7"), SubResource("Resource_t8"), SubResource("Resource_t9"), SubResource("Resource_t10"), SubResource("Resource_t11")])

@@ -1,0 +1,11 @@
+id = "FAULT-A5-03"
+area = "A5"
+title = "assert player.position.x >= 400 at tick 100 fails with the measured value"
+fixture = "scenario_min"
+severity = "must"
+source = "05_scenario.md section 5"
+apply = [
+  {op = "write", path = "scenarios/wrong.json", from = "files/wrong.json"},
+]
+run = {verb = "run", args = ["res://scenarios/wrong.json"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[run\.assert\].*got '], not_regex = [], max_seconds = 60}

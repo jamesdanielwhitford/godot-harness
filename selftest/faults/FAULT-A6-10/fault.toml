@@ -1,0 +1,12 @@
+id = "FAULT-A6-10"
+area = "A6"
+title = "scene hangs in _process under Xvfb with shot timeout 5 s: harness.hang, process group killed"
+fixture = "shot_min"
+severity = "must"
+source = "06_visual.md section 5"
+apply = [
+  {op = "write", path = "harness.toml", text = "[timeouts]\nshot = 5\n"},
+  {op = "replace", path = "scripts/main.gd", old = "\tpass # HOOK-PROCESS", new = "\tif Engine.get_physics_frames() > 5:\n\t\twhile true: pass"},
+]
+run = {verb = "shot", args = ["res://scenes/main.tscn", "--tick", "30"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[harness\.hang\]'], not_regex = [], max_seconds = 40}

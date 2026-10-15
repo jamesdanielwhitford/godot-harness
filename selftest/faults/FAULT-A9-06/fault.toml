@@ -1,0 +1,12 @@
+id = "FAULT-A9-06"
+area = "A9"
+title = "stats loaded by plain duplicate: JSON floats survive as floats (lossy save)"
+fixture = "@sample"
+severity = "must"
+source = "09_sim_view_sample.md section 5"
+apply = [
+  {op = "replace", path = "sim/tactics/tactics_world.gd", old = 'var st = SimCodec.int_dict_of(d, "stats", err) # HOOK-STATS-LOAD', new = 'var st = d["data"]["stats"].duplicate() # HOOK-STATS-LOAD'},
+  {op = "write", path = "tests/a9f/test_roundtrip.gd", from = "files/test_roundtrip.gd"},
+]
+run = {verb = "test", args = ["res://tests/a9f/"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[test\.failed\]'], not_regex = [], max_seconds = 180}

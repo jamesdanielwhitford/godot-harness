@@ -1,0 +1,18 @@
+{
+  "schema": "harness.scenario/1",
+  "scene": "res://scenes/flat.tscn",
+  "seed": 7,
+  "ticks": 120,
+  "inputs": [
+    {
+      "tick": 1,
+      "action": "right",
+      "pressed": true
+    },
+    {
+      "tick": 60,
+      "action": "right",
+      "pressed": false
+    }
+  ]
+}

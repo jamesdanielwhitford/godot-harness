@@ -1,0 +1,11 @@
+id = "FAULT-A9-12"
+area = "A9"
+title = "idle (process-mode) tween in the view warns under the sample's strict replay_dirs"
+fixture = "@sample"
+severity = "nice"
+source = "09_sim_view_sample.md section 5"
+apply = [
+  {op = "replace", path = "game/tactics/tactics_view.gd", old = 'pass # HOOK-VIEW-EVENT', new = 'create_tween().tween_property(self, "modulate:a", 1.0, 0.2)'},
+]
+run = {verb = "lint", args = [], env = {}, no_project = false}
+expect = {rc = 5, verdict = "WARN", regex = ['\[lint\.det-idle-tween\]'], not_regex = [], max_seconds = 15}
