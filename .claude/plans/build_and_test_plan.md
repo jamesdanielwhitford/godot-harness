@@ -12,10 +12,10 @@ Tags: **[U]** unverified or a judgement call; **[DEFAULT]** a proposed answer to
 
 | Phase | Item | Status | Commit / date | Notes |
 |---|---|---|---|---|
-| 0 | Dev roles (`.claude/agents/*.md`), handoff dirs, pathguard, test-lock scripts | todo | | |
-| 0 | `tools/bootstrap.sh` + `h doctor` stub | todo | | |
-| 0 | Spikes S1–S6 | todo | | |
-| 0 | User decisions D1–D5 confirmed or defaults accepted | todo | | defaults in §2 |
+| 0 | Dev roles (`.claude/agents/*.md`), handoff dirs, pathguard, test-lock scripts | done | 048ad74, b7a1059 / 2026-10-15 | custom agent types do NOT resolve in the Agent tool here (S3); spawn `general-purpose` with `model:` and paste the role text |
+| 0 | `tools/bootstrap.sh` + `h doctor` stub | done | 771a0ca / 2026-10-15 | fresh-clone G0 check passed (ci PASS, rest SKIPPED). Known gap: --doctool XML not cached |
+| 0 | Spikes S1–S6 | done | d2ce008 / 2026-10-15 | see research/r2_spikes.md. Nested `claude -p` works; S6: branches can be pushed but not deleted, so stay on `main` |
+| 0 | User decisions D1–D5 confirmed or defaults accepted | defaults | 2026-10-15 | user said work autonomously; defaults in force |
 | 0 | RP.1 baseline study, RP.2 reference census | todo | | Round P wave P0 |
 | 1a | P0 contract spec `specs/00_contract.md` | todo | | |
 | 1b | Planner specs A1–A9 | todo | | |
