@@ -28,3 +28,6 @@ mono_crash.*.json
 .venv/
 .harness/
 tools/bin/
+__pycache__/
+*.pyc
+.pytest_cache/
