@@ -34,3 +34,4 @@ __pycache__/
 sample/addons/gdUnit4/
 sample/addons/harness/
 reports/
+.claude/worktrees/
