@@ -23,7 +23,9 @@ run_layer() { # name cmd...
   local t0=$SECONDS
   "$@" > "$out/$name.log" 2>&1; local rc=$?
   local d="rc=$rc, $((SECONDS-t0))s, log $name.log"
-  if [ $rc -eq 0 ]; then record "$name" PASS "$d"; else record "$name" FAIL "$d"; fi
+  if [ $rc -eq 0 ]; then record "$name" PASS "$d"
+  elif [ $rc -eq 5 ]; then record "$name" PASS "$d, rc 5 = pass with warnings"
+  else record "$name" FAIL "$d"; fi
   return 0
 }
 
@@ -64,7 +66,9 @@ if [ $quick -eq 1 ]; then
   record gd_host SKIPPED "--quick"; record e2e SKIPPED "--quick"; record selftest SKIPPED "--quick"
 else
   if [ -x "$h" ] && [ -d tests/fixtures/projects/gd_host ] && [ -f tools/harness/harness/verbs/test.py ]; then
-    run_layer gd_host "$h" test --project tests/fixtures/projects/gd_host
+    gd_tmp="${HARNESS_TMP:-$ROOT/.harness/tmp}/gd_host_$ts"; rm -rf "$gd_tmp"; mkdir -p "$gd_tmp"
+    cp -a tests/fixtures/projects/gd_host/. "$gd_tmp/"
+    run_layer gd_host "$h" test --project "$gd_tmp"
   else record gd_host SKIPPED "h test or gd_host fixture missing"; fi
   pytest_layer e2e tests/e2e
   if [ -x "$h" ] && [ -f tools/harness/harness/verbs/selftest.py ]; then

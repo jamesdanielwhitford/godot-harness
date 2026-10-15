@@ -83,6 +83,34 @@ class PathguardTest(Tree):
         self.assertEqual(self.run_dev("pathguard.sh", "builder").returncode, 2)
 
 
+class PathguardAreasTest(Tree):
+    def test_comma_areas_and_a1_extras(self):
+        self.w("selftest/faults/FAULT-P0-01/fault.toml")
+        self.w("selftest/clean/CLEAN-A1-02/x.toml")
+        self.w("tests/helpers/h.py")
+        r = self.run_dev("pathguard.sh", "test-writer", "a1,p0", "working-tree")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+
+    def test_other_area_rejects(self):
+        self.w("selftest/faults/FAULT-P0-01/fault.toml")
+        self.w("tests/helpers/h.py")
+        r = self.run_dev("pathguard.sh", "test-writer", "a2", "working-tree")
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("selftest/faults/FAULT-P0-01/fault.toml", r.stdout)
+        self.assertIn("tests/helpers/h.py", r.stdout)
+
+    def test_a10_not_matched_by_a1(self):
+        self.w("selftest/faults/FAULT-A10-01/fault.toml")
+        self.assertEqual(self.run_dev("pathguard.sh", "test-writer", "a1", "working-tree").returncode, 1)
+        self.assertEqual(self.run_dev("pathguard.sh", "adjudicator", "a10", "working-tree").returncode, 1)
+        self.assertEqual(self.run_dev("pathguard.sh", "test-writer", "A10", "working-tree").returncode, 0)
+
+    def test_builder_bootstrap_only_a1(self):
+        self.w("tools/bootstrap.sh")
+        self.assertEqual(self.run_dev("pathguard.sh", "builder", "a1,p0", "working-tree").returncode, 0)
+        self.assertEqual(self.run_dev("pathguard.sh", "builder", "a2", "working-tree").returncode, 1)
+
+
 class LockTest(Tree):
     def lock(self):
         self.w("tests/unit/t.py", "a")
@@ -100,6 +128,11 @@ class LockTest(Tree):
         self.assertIn("selftest/faults/F-1/fault.yaml", lock)
         self.assertNotIn("LOCK.sha256", lock)
         self.w("tests/unit/__pycache__/t.pyc", "junk")  # noise ignored
+        self.assertEqual(self.run_dev("check_lock.sh").returncode, 0)
+
+    def test_harness_dir_ignored(self):
+        self.lock()
+        self.w("tests/fixtures/x/.harness/out.txt", "junk")
         self.assertEqual(self.run_dev("check_lock.sh").returncode, 0)
 
     def test_changed_added_removed_fail(self):

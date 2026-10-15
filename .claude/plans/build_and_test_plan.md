@@ -105,7 +105,7 @@ tools/
       logscan.py out.py        # error patterns; .harness/out/<run-id>/ + <=40-line summary
       verbs/                   # doctor import api check lint test digest scene_gen scene_edit
                                # run trace shot baseline sync selftest lsp (one file each)
-    rules/lint_rules.yaml      # from research/scripts/r1_5_lint (curated + full, severity mapped)
+    rules/lint_rules.json      # from research/scripts/r1_5_lint (curated + full, severity mapped)
   dev/                         # build-process tools (not shipped)
     ci.sh                      # local "CI": the full suite in order (§4.2)
     pathguard.sh               # fail if commits in a range touch paths outside a role's allowlist
@@ -126,8 +126,8 @@ tests/
   e2e/                         # fresh-project end-to-end flows
   fixtures/projects/<name>/    # small Godot projects: clean_min, broken_scenes (r1_4 cases), godot3_scripts (r1_5 cases), ...
 selftest/
-  faults/<FAULT-ID>/fault.yaml (+ files/ or patch)   # seeded faults
-  expected_matrix.yaml         # fault -> verb -> expected verdict (generated from fault.yaml)
+  faults/<FAULT-ID>/fault.toml (+ files/ or patch)   # seeded faults
+  (no committed expected matrix; see 00_contract)         # fault -> verb -> expected verdict (generated from fault.toml)
 eval/                          # Phase 8 only: benchmark tasks and hidden tests (never installed into templates)
 docs/ HARNESS.md ADOPTION.md verbs.md
 .claude/
@@ -314,7 +314,7 @@ Rules:
   "untestable automatically" in test_notes.md with a reason.
 - Black-box: call `tools/harness/h` via subprocess; copy fixtures to a tmp dir (B3) first; assert the exit code AND output lines.
   Do not assert exact wording beyond what the spec fixes (first-line verdict token, rule ids, path:line).
-- Implement every FAULT entry of your spec as selftest/faults/<id>/fault.yaml (+ files/patch), in the format of 00_contract.md.
+- Implement every FAULT entry of your spec as selftest/faults/<id>/fault.toml (+ files/patch), in the format of 00_contract.md.
 - Include negative tests (a clean fixture must PASS: no false positives) and at least one timeout/hang case where the spec has one.
 - Tests must run red now (the verbs do not exist). Run them once and record in test_notes.md that they fail for the right
   reason (exit 2 "unknown verb" or missing module), not collection errors.
@@ -375,7 +375,7 @@ Read also: r1_1_cli.md, r1_3_testing.md (summariser), r1_4_scene_format.md §3, 
 Define, for all areas: the `h` dispatcher and verb discovery (B2); the stdout format and exit codes (plan §3.2) with literal
 examples; the .harness/out/<run-id>/ layout (run.json with argv, rc, scan verdict, durations; full logs); harness config
 (`harness.toml` in a project: godot path, autoload names, lint severity overrides, renderer, tick rate); the godot.py
-invocation contract (timeout defaults per kind, log scan patterns, verdict merge, rc 124 = hang); the fault.yaml format and the
+invocation contract (timeout defaults per kind, log scan patterns, verdict merge, rc 124 = hang); the fault.toml format and the
 selftest runner semantics (apply to temp copy, run verb, compare verdict + regex, time limit); the fixture project conventions
 (tests/fixtures/projects/<name>/ minimum files; who imports); the B3 temp-copy rule; the role path allowlists used by
 pathguard.sh; the test-lock format; handoff status.md format. Seeded faults: >= 4 about the harness core itself (e.g. Godot
@@ -650,7 +650,7 @@ Throttle the topic agents by the RP.1 ranking (addendum P4). With the D2 default
 
 ## 10. Seeded-fault suite and verification metrics
 
-- **Format** (fixed in `00_contract.md`): `fault.yaml` = `{id, area, fixture, apply: {copy|patch|replace: ...}, verb: "h check", expect: {verdict: FAIL, regex: "...", max_seconds: N}, severity: must|nice, source: "r1_5 c05"}`.
+- **Format** (fixed in `00_contract.md`): `fault.toml` = `{id, area, fixture, apply: {copy|patch|replace: ...}, verb: "h check", expect: {verdict: FAIL, regex: "...", max_seconds: N}, severity: must|nice, source: "r1_5 c05"}`.
 - **Minimum catalogue for v0:** at least 75 faults (P0 4, A1 12, A2 10, A3 15, A4 8, A5 8, A6 6, A7 6, A8 8, A9 6), plus clean-fixture checks that must PASS.
 - **Gate metrics** (reported by the verifier):
   - must-catch detection = 100%; nice-to-catch ≥ 70%;

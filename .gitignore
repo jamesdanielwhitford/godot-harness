@@ -31,3 +31,6 @@ tools/bin/
 __pycache__/
 *.pyc
 .pytest_cache/
+sample/addons/gdUnit4/
+sample/addons/harness/
+reports/

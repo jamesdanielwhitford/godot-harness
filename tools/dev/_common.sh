@@ -12,7 +12,7 @@ lock_manifest() {
   ( cd "$ROOT" || exit 1
     for d in tests selftest; do
       if [ -d "$d" ]; then
-        find "$d" \( -name __pycache__ -o -name .pytest_cache -o -name .godot \) -prune -o \
+        find "$d" \( -name __pycache__ -o -name .pytest_cache -o -name .godot -o -name .harness \) -prune -o \
           -type f ! -name '*.pyc' ! -path 'tests/LOCK.sha256' -print
       fi
     done | LC_ALL=C sort | while IFS= read -r f; do sha256sum -- "$f"; done

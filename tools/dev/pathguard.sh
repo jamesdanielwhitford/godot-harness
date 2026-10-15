@@ -8,8 +8,8 @@ set -uo pipefail
 . "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
 if [ $# -ne 3 ]; then echo "usage: pathguard.sh <role> <area> <range|working-tree>" >&2; exit 2; fi
 role="$1"; area="$2"; target="$3"
-case "$area" in *[!A-Za-z0-9_.-]*|"") echo "pathguard: bad area '$area'" >&2; exit 2;; esac
-A="$(printf '%s' "$area" | tr 'A-Z' 'a-z')"
+case "$area" in *[!A-Za-z0-9_.,-]*|""|,*|*,,*|*,) echo "pathguard: bad area '$area'" >&2; exit 2;; esac
+AREAS="$(printf '%s' "$area" | tr 'A-Z' 'a-z')"   # comma list; a path passes if any area allows it
 
 cd "$ROOT" || exit 2
 if [ "$target" = "working-tree" ] || [ "$target" = "wt" ]; then
@@ -22,7 +22,12 @@ fi
 
 # allowed <relpath-lowercased-area-aware>; returns 0 if the role may write it.
 allowed() {
-  local p="$1" lp
+  local a
+  for a in ${AREAS//,/ }; do allowed_for "$1" "$a" && return 0; done
+  return 1
+}
+allowed_for() {
+  local p="$1" A="$2" lp
   lp="$(printf '%s' "$p" | tr 'A-Z' 'a-z')"
   case "$p" in ..*|*/../*|/*) return 1;; esac
   # Every role may update its own area handoff status.
@@ -43,7 +48,8 @@ allowed() {
       case "$lp" in
         tests/contract/$A/*|tests/unit/$A/*|tests/gd/$A/*|tests/e2e/$A/*) return 0;;
         tests/fixtures/*) return 0;;   # new fixtures only; modification of existing ones is checked below
-        selftest/faults/$A-*) return 0;;
+        selftest/faults/fault-$A-*|selftest/clean/clean-$A-*) return 0;;
+        tests/conftest.py|tests/helpers/*) [ "$A" = a1 ] && return 0;;
         .claude/handoff/$A/test_notes.md) return 0;;
       esac;;
     builder)
@@ -52,6 +58,7 @@ allowed() {
       esac
       case "$lp" in
         .claude/handoff/$A/build_notes.md|.claude/handoff/$A/test_disputes.md) return 0;;
+        tools/bootstrap.sh) [ "$A" = a1 ] && return 0;;
       esac;;
     verifier)
       case "$lp" in
