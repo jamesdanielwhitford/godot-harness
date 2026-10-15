@@ -17,9 +17,9 @@ Tags: **[U]** unverified or a judgement call; **[DEFAULT]** a proposed answer to
 | 0 | Spikes S1–S6 | done | d2ce008 / 2026-10-15 | see research/r2_spikes.md. Nested `claude -p` works; S6: branches can be pushed but not deleted, so stay on `main` |
 | 0 | User decisions D1–D5 confirmed or defaults accepted | defaults | 2026-10-15 | user said work autonomously; defaults in force |
 | 0 | RP.1 baseline study, RP.2 reference census | done | d45d652, 85199aa / 2026-10-15 | `research/rp_1_baseline.md`, `rp_2_references.md`; RP.1 effort split supersedes §9.1 depth list |
-| 1a | P0 contract spec `specs/00_contract.md` | written, needs revision | 6e2c418 / 2026-10-15 | C5–C7, C10, C11 applied (91245e4). Re-run P0 with REVIEW B01–B07 (+N03, N14, N17, N18) |
-| 1b | Planner specs A1–A9 | written, need re-runs | d49fe4d..5900378 / 2026-10-15 | re-run P1 (B08–B13), P2 (B14), P3 (B15) before Phase 2; P5 (B16), P6 (B17), P7 (B18), P9 (B19) before Phase 3 test-writers; P4/P8 non-blocking only |
-| 1c | Spec consistency review `specs/REVIEW.md` | done; **G1 NOT passed** | d167e50 / 2026-10-15 | 19 blocking (B01–B19), 24 non-blocking (N01–N24). Orchestrator edits N12/N13 still open. Tag `specs-v1` after re-runs |
+| 1a | P0 contract spec `specs/00_contract.md` | done (v2) | session 002 | REVIEW B01–B07 + N03, N14, N17, N18 applied |
+| 1b | Planner specs A1–A9 | done (v2); A8 spec still v1 | session 002 | P1-P7, P9 re-runs applied. P8 (N10, N24) before T8; planner pass for N25-N29 (REVIEW §8.3) optional |
+| 1c | Spec consistency review `specs/REVIEW.md` | done; **G1 passed** | session 002 | re-check in REVIEW §8: B01–B19 applied; new decisions R-51..R-56 (R-51: sample copies need `h sync --no-gdunit`). Tag `specs-v1` |
 | 2 | Core tests written + locked (A1–A4) | not started | | blocked on B01–B15 |
 | 3 | Core built (A1, then A2/A3/A4) | todo | | |
 | 4 | Core verified from fresh clone, tag `v0-core` | todo | | Gate G2 |

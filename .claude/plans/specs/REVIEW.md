@@ -1,10 +1,13 @@
 # Spec consistency review (Gate G1, plan §8.1 phase 1c)
 
-Status: review v1, 2026-10-15, Opus spec reviewer. Inputs: CLAUDE.md, plan §1-8/10/11, `00_contract.md` (C), specs
+Status: review v2 (v1 + re-check §8), 2026-10-15, Opus spec reviewer. Inputs: CLAUDE.md, plan §1-8/10/11, `00_contract.md` (C), specs
 01-09 (cited "A1 §x" ... "A9 §x"), `.claude/handoff/*/status.md`. This file is the single source of reconciliation:
 where it and a spec disagree, this file wins until the planner re-run lands. Tags: [Run] verified here (§7), [U].
 
-**Verdict: G1 not yet passed.** 19 BLOCKING items (§3.1), 24 NON-BLOCKING (§3.2). All specs meet the AC/fault
+**Re-check (v2, §8): G1 passed.** B01-B19 are all applied. The re-check found no new blocking items. It adds
+decisions R-51..R-56 and non-blocking items N25-N29; builders and test-writers follow them now.
+
+v1 verdict (historical): G1 not yet passed. 19 BLOCKING items (§3.1), 24 NON-BLOCKING (§3.2). All specs meet the AC/fault
 minimums (§2.7). No two specs define the same verb, rule id or fixture name. The blocking items are mostly
 mismatched cross-spec APIs and selftest entries that cannot pass as written.
 
@@ -261,3 +264,79 @@ start T6 after T5 has written that fixture, or have T6 copy-on-read it at test t
 - R-24: after `--import`, `.godot/global_script_class_cache.cfg` = `list=[{"base": &"Node2D", "class": &"Hello",
   "icon": "", "is_abstract": false, "is_tool": false, "language": &"GDScript", "path": "res://scripts/hello.gd"}]`,
   so (class, path) pairs are directly comparable.
+
+## 8. Re-check after the planner re-runs (v2, 2026-10-15)
+
+Inputs: specs at HEAD `b2c990a` (00 v2, 01 v1.1, 02 v2, 03 v2, 04 re-run N01/N02, 05 v2, 06 v1.1, 07 v2, 09 v2; 08
+not re-run, which is expected because it has no B item). For each B item I read the cited spec text and checked
+that the R-id wording is applied, not only cited.
+
+### 8.1 Blocking items
+| # | R-ids | Status | Where applied |
+|---|---|---|---|
+| B01 | R-38, R-50 | applied | C §2.7 (pattern + `assert_contract`), §2.3 item 3 (check-line grammar) |
+| B02 | R-25 | applied | C §5 FAULT-P0-06 (must, quit_early, `--smoke`), §8 open (1) closed, §3.4 spike |
+| B03 | R-24, R-32 | applied | C §2.8.7 (explicit, class-set content, scope, no mtime), AC-00.27 (N18) |
+| B04 | R-01 | applied | C §2.12 last bullet (closed list), §2.9 heading |
+| B05 | R-05, R-06, R-09, R-14, R-31 | applied | C §2.8.2 (`project=None`/`cwd`, kinds `oracle`/`lsp_start`), §2.8.3 (xvfb cleanup/retry), §2.8.4 (ANSI, fallback), §2.8.6 (`oracle` {0}), §2.9 (`spawn`, `Invocation`, no auto-add), run.json `retried`/`display_failed` |
+| B06 | R-16 | applied | C §2.6 default `autoloads` with Trace |
+| B07 | R-10, R-11, R-12, R-22, R-39, R-45 | applied | C §2.10 (`@sample`), §2.11 (PNG), §2.8.5 (`load()` libraries), §2.3 (`more:`), §2.12 + §6 (`run_godot`, `gd.py`, `gd_host`), §2.2 (env) |
+| B08 | R-29 | applied | A1 §3.2 step 9, §8.4 |
+| B09 | R-26 | applied | A1 §2.4 `--exists` bullet, AC-01.21 |
+| B10 | R-27 | applied | A1 §5 CLEAN-A1-01 |
+| B11 | R-28, R-39 | applied | A1 AC-01.16 (regex), AC-01.27 ([contract] via `run_godot`) |
+| B12 | R-33, R-16 | applied | A1 §2.3 (overwrite policy, insertion rule), §3.1 (`ensure_synced`, `install_gdunit4`, `sync_project`), AC-01.18 |
+| B13 | R-30, R-25, R-14 | applied | A1 §3.1 (`checkrun.load_check`), §3.2 step 5 + AC-01.31, §3.8 |
+| B14 | R-30 | applied | A2 §3.3 (load-check paragraph, scene-gen/scene-edit steps), §8.4 |
+| B15 | R-08, R-29 | applied | A3 §2.6 (default `[]`), §6.3, AC-03.5, AC-03.16, FAULT-A3-13/17, §8.2 closed; §2.2/§2.3 no `h check --lsp` |
+| B16 | R-18, R-19, R-20, R-15, R-34 | applied | A5 §3.2 steps 1, 2, 6; §2.3 (`handle` replaces, `unhandle`), AC-05.26; §2.7 + §3.1 (`replay.py`, exact R-19 signature); §3.3 |
+| B17 | R-15, R-35, R-19 | applied | A6 §3.1 (no scenario.gd), §2.2 rows, §3.3 step 1, §3.2 step 3, AC-06.9/23 (N22) |
+| B18 | R-37, R-19 | applied | A7 §5 header + FAULT-A7-01..06, §2.2 fold line, §3.3 step 3, §3.5 |
+| B19 | R-16, R-08, R-36, R-17, R-35 | applied | A9 §2.4 + AC-09.2/5 (5 autoloads, Trace 4th), §2.4 harness.toml `replay_dirs`, §2.7 (feel arena, suite, R-17 names/ranges), §3.1 file list, §7 step 8, AC-09.22 |
+
+Non-blocking items checked as applied: N01-N09, N11, N14, N15, N16, N17, N18, N19, N20,
+N21, N22, N23. Still open, as planned: N10 and N24 (A8, P8 before T8), N12 and N13 (orchestrator).
+
+### 8.2 Cross-spec checks (the orchestrator's list)
+- (a) `replay.run_scenario`: consistent. A5 §2.7 says it returns `RunResult.findings` and adds nothing. `h run` (A5
+  §3.3), A6 §3.2 step 3 and A7 §3.3 step 3 each add the findings themselves. The `[U ...]` notes in A6 §3.2 step 2 and
+  A7 §3.3 step 3 are stale and are resolved by A5 v2 (N25).
+- (b) `checkrun.load_check`: A1 §3.1 and A2 §3.3/§8.4 use the same signature `(run, project, res_paths, smoke=0) ->
+  list[dict]`. Both specs agree that it returns findings without adding them, does not import, and that A2 calls
+  `ensure_imported` first. Consistent.
+- (c) `install_gdunit4` -> `installed (pin changed)` (A1 §3.1, D-g): accepted, R-53.
+- (d) Autoload counts: the C §2.6 / A1 default has 4 entries; A5 `required_autoloads` and `scenario_min` keep 3;
+  A7 `feel_min`, `gd_host` and A9 have 4 harness entries (A9 lists 5 with SceneManager). A8 §2.1 still shows
+  "3 autoloads" (N24, open, non-blocking). Consistent.
+- (e) Line counts: 00 = 491 (over the orchestrator's 480 tolerance and the plan's 450), 01 = 480, the rest <= 475.
+  Accepted for `specs-v1` (R-56).
+
+### 8.3 New decisions (normative; where one disagrees with a spec, REVIEW wins until the next planner touch)
+| ID | Topic | Decision | Amend |
+|---|---|---|---|
+| R-51 | `@sample` copies exclude `addons/harness/` (C §2.10), but the sample declares the harness autoloads. Every Godot run then logs `ERROR: Failed loading resource: res://addons/harness/harness.gd` and `Failed to instantiate an autoload` [Run §8.4], so A9 AC-09.3/6 (`h check`/`h test` on a copy) and A9 `check`/`test` faults could never PASS. Only `h run`/`h shot`/`h trace` call `ensure_synced`. | **An `@sample` copy is synced as part of the copy.** `copy_fixture("@sample", dest)` (T1) and `faults.py` (selftest, before the `apply` ops) run `h sync --no-gdunit --project <copy>` with `HARNESS_OUT` under the test/entry dir. A non-zero rc counts as a helper error, or as `BROKEN` in selftest. `h sync` leaves the sample's `project.godot` byte-identical (R-16), so the copy differs from the repo only in `addons/harness/`. No other fixture is affected: `gd_host` is synced by `run_gd_suites`, `feel_min` and `scenario_min` are synced by their verbs, and no other fixture declares a harness autoload. | C §2.10 `@sample` sentence, §2.12 `copy_fixture` text (P0, N26) |
+| R-52 | Kind `movie` (A7 `run_scenario(kind="movie")`) is missing from C §2.8.2 "runner-style kinds" and from the C §2.8.6 expected-rc sets | **`movie` is runner-style**: it takes `-s <runner>` and its expected rc is {0,1}, the same as `scenario`/`shot`. Timeout stays 300 s. | C §2.8.2, §2.8.6 (P0, N26) |
+| R-53 | A1 `install_gdunit4` also returns `installed (pin changed)` (harness-installed copy at another version was overwritten), which is not in the R-33 list | **Accept.** R-33's return set is `present` \| `installed (was missing)` \| `installed (pin changed)`. A4 prints the value verbatim in its `gdunit4:` stat, so A4 §2.2/§8 A-1 need only the list update. | A4 §3.2 step 2, §8 A-1 (P4, N27); A1 §8.3 D-g drop the `[U]` |
+| R-54 | `--fixed-fps` duplicated: `run_scenario` always passes `--fixed-fps <fps>`, yet A7 §3.5 adds `"--fixed-fps", "<tick_rate>"` to `extra_args` and A6 §3.2 step 3 passes "size/movie args as above" | **`run_scenario` owns `--fixed-fps`.** Callers never put `--fixed-fps` in `extra_args`: A7's movie passes `fps=tick_rate`, and A6 passes only `--resolution`/`--write-movie`. A builder that sees a duplicate drops the caller's copy. | A6 §3.2 step 3, A7 §3.5 (N25) |
+| R-55 | Stale `[U]` markers that point to "until the A5 re-plan lands" (A6 §3.2 step 2, A7 §3.3 step 3) | Resolved by A5 v2 §2.7: `run_scenario` does no sync/import and adds no findings. The markers are editorial. | A6, A7 (N25) |
+| R-56 | 00_contract is 491 lines (plan cap 450, orchestrator tolerance 480) | **Accept for `specs-v1`.** The overrun comes from normative R-text, and a trim must not reword decisions. At its next touch P0 moves the §8.1 R-id list (11 lines) to a one-line pointer to REVIEW §1. No other spec is over 480. | 00 §8.1 (P0, N26) |
+
+### 8.4 Spike ([Run], scratchpad `rev2/`, Godot 4.7.stable.official.5b4e0cb0f)
+Project with `[autoload] Harness="*res://addons/harness/harness.gd"` and no such file. `--import` gives rc 0 and logs
+`ERROR: Attempt to open script ... 'File not found'`, `ERROR: Failed loading resource: res://addons/harness/harness.gd.`
+and `ERROR: Failed to create an autoload ...`. A `-s` runner gives rc 0, prints `begin`/`done`, and logs `ERROR: Failed to
+instantiate an autoload, can't load from path: ...`. Under C §2.8.4 these lines become `godot.load-failed`/`godot.error`
+errors, so the verb FAILs (R-51).
+
+### 8.5 New non-blocking items (apply at the next planner touch)
+| # | Spec | Fix | Applied by |
+|---|---|---|---|
+| N25 | 06, 07 | Drop the stale `[U]` markers (R-55); remove `--fixed-fps` from caller `extra_args` (R-54) | P6, P7 |
+| N26 | 00 | `@sample` copy sync (R-51); `movie` runner-style + rc set (R-52); move §8.1 list to a REVIEW pointer (R-56) | P0 |
+| N27 | 04, 01 | `installed (pin changed)` in the return set (R-53) | P4, P1 |
+| N28 | 09 | AC-09.3/6 note: "copy" = `copy_fixture("@sample")`, which includes the R-51 sync | P9 |
+| N29 | tests | T1 implements R-51 in `copy_fixture`; B1 implements it in `faults.py` (both follow this file now) | T1, B1 |
+
+**Re-check verdict: G1 passed.** Every B01-B19 item is applied and no new blocking item remains. R-51..R-56 are
+REVIEW-normative now, and T1/T9/B1/B5-B7 follow them without waiting for N25-N29. Tag `specs-v1` once the
+orchestrator commits.

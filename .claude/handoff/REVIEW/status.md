@@ -1,15 +1,17 @@
 area: REVIEW spec-review      phase: plan      state: done
-spec: .claude/plans/specs/REVIEW.md @ uncommitted
+spec: .claude/plans/specs/REVIEW.md @ uncommitted (v2, re-check §8 over specs at b2c990a)
 tests: n/a      lock: n/a
 updated: 2026-10-15 by spec-reviewer (claude-opus-5-5)
 done:
-- REVIEW.md: 50 decisions (R-01..R-50), conflicts (ownership, rule ids, output, autoloads, rc, fixtures, faults), 19 blocking + 24 non-blocking items, build graph + B1 exposure list, T1-T9 groupings, 2 human items
-- fault counts: 143 faults + 28 clean, every area >= plan §10 minimum
-- [Run] spikes: smoke-quit gives rc 0 with no done (FAULT-P0-06 replacement); class cache cfg lists (class, path) pairs (content-based staleness)
+- v1: R-01..R-50, conflicts, 19 blocking + 24 non-blocking items, build graph, T1-T9 groupings, 2 human items
+- v2 re-check (§8): B01-B19 all applied, each checked against its spec section; N01-N09, N11, N14-N23 applied
+- cross-spec checks (a)-(e): run_scenario returns findings everywhere; load_check consistent in A1/A2; autoload counts consistent (A8 "3 autoloads" = open N24)
+- new decisions R-51..R-56: @sample copy gets `h sync --no-gdunit` (R-51, [Run §8.4] missing autoload = error findings); `movie` is runner-style (R-52); `installed (pin changed)` accepted (R-53); run_scenario owns --fixed-fps (R-54); stale [U] notes (R-55); 00 at 491 lines accepted (R-56)
+- verdict: G1 passed
 next:
-- orchestrator: re-run planners P0, P1, P2, P3 with B01-B15 (gate Phase 2); P5, P6, P7, P9 with B16-B19 (gate Phase 3 test-writers)
-- orchestrator: apply N12/N13 (plan text, tools/dev C5-C7, C10, ci.sh gd layer) before Phase 2
+- orchestrator: commit REVIEW.md, tag specs-v1, start Phase 2 (T1 first deliverable incl. R-51 in copy_fixture)
+- orchestrator: apply N12/N13 before Phase 2; P8 applies N10/N24 before T8; N25-N29 at the next planner touch
 - ask the human REVIEW §6 items 1-2 once; continue on the stated defaults
 blockers:
-- G1 not passed until B01-B19 are applied
+- none
 disputes: 0 open
