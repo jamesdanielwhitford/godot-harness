@@ -1,0 +1,11 @@
+id = "FAULT-A3-05"
+area = "A3"
+title = "move_and_slide with args"
+fixture = "lint_base"
+severity = "must"
+source = "03_lint.md section 5"
+apply = [
+  {op = "write", path = "scripts/f.gd", text = "extends CharacterBody2D\nfunc _physics_process(d):\n\tvelocity = move_and_slide(velocity, Vector2.UP)\n"},
+]
+run = {verb = "lint", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[syn-move-and-slide-args\]'], not_regex = [], max_seconds = 15}

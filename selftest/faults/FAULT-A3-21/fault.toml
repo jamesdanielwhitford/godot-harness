@@ -1,0 +1,11 @@
+id = "FAULT-A3-21"
+area = "A3"
+title = "connect with unknown signal on typed receiver"
+fixture = "lint_base"
+severity = "nice"
+source = "03_lint.md section 5"
+apply = [
+  {op = "write", path = "scripts/f.gd", text = "extends Node\nfunc _ready():\n\tvar b = Button.new()\n\tb.connect(\"pressed\", _x)\n\tb.connect(\"nosuch\", _x)\nfunc _x():\n\tpass\n"},
+]
+run = {verb = "lint", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[lint\.signal-name\]'], not_regex = [], max_seconds = 15}

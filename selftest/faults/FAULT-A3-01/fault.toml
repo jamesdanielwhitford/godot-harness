@@ -1,0 +1,11 @@
+id = "FAULT-A3-01"
+area = "A3"
+title = "Godot 3 KinematicBody2D base class"
+fixture = "lint_base"
+severity = "must"
+source = "03_lint.md section 5"
+apply = [
+  {op = "write", path = "scripts/f.gd", text = "extends KinematicBody2D\nfunc _ready():\n\tpass\n"},
+]
+run = {verb = "lint", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['^res://scripts/f\.gd:1: \[class-KinematicBody2D\] error'], not_regex = [], max_seconds = 15}

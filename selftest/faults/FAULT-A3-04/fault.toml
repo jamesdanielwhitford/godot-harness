@@ -1,0 +1,11 @@
+id = "FAULT-A3-04"
+area = "A3"
+title = "3-arg connect"
+fixture = "lint_base"
+severity = "must"
+source = "03_lint.md section 5"
+apply = [
+  {op = "write", path = "scripts/f.gd", text = "extends Node\nfunc _ready():\n\tconnect(\"tree_exited\", self, \"_x\")\nfunc _x():\n\tpass\n"},
+]
+run = {verb = "lint", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['f\.gd:3: \[syn-connect-3arg\]'], not_regex = [], max_seconds = 15}

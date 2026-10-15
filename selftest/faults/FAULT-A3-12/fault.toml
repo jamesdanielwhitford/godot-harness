@@ -1,0 +1,11 @@
+id = "FAULT-A3-12"
+area = "A3"
+title = "randi() in sim code"
+fixture = "lint_base"
+severity = "must"
+source = "03_lint.md section 5"
+apply = [
+  {op = "write", path = "sim/roll.gd", text = "extends RefCounted\nfunc roll() -> int:\n\treturn randi() % 6\n"},
+]
+run = {verb = "lint", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['roll\.gd:3: \[lint\.det-global-rng\] error'], not_regex = [], max_seconds = 15}

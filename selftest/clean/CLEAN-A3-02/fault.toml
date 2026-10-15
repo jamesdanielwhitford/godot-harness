@@ -1,0 +1,10 @@
+id = "CLEAN-A3-02"
+area = "A3"
+title = "dodge_the_creeps with strict replay_dirs: warnings only"
+fixture = "lint_clean_demo"
+severity = "must"
+source = "03_lint.md section 5"
+apply = [
+]
+run = {verb = "lint", args = [], env = {}, no_project = false}
+expect = {rc = 5, verdict = "WARN", regex = ['\[lint\.det-idle-timer\]', '\[lint\.det-global-rng\]'], not_regex = ['\] error:'], max_seconds = 15}

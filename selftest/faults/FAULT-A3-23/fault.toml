@@ -1,0 +1,11 @@
+id = "FAULT-A3-23"
+area = "A3"
+title = "oracle reports rand_range rewrite"
+fixture = "lint_base"
+severity = "must"
+source = "03_lint.md section 5"
+apply = [
+  {op = "write", path = "scripts/f.gd", text = "extends Node\nfunc _ready():\n\tprint(rand_range(0,1))\n"},
+]
+run = {verb = "lint", args = ["--godot3-oracle", "{project}/scripts/f.gd"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[lint\.g3-oracle\].*randf_range'], not_regex = [], max_seconds = 30}

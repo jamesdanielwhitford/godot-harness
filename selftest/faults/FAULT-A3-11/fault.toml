@@ -1,0 +1,11 @@
+id = "FAULT-A3-11"
+area = "A3"
+title = "format=2 Godot 3 scene"
+fixture = "lint_base"
+severity = "must"
+source = "03_lint.md section 5"
+apply = [
+  {op = "write", path = "scenes/old.tscn", from = "files/old.tscn"},
+]
+run = {verb = "lint", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['old\.tscn:1: \[tscn-g3-header\]'], not_regex = [], max_seconds = 15}

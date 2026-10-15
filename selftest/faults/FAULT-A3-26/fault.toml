@@ -1,0 +1,11 @@
+id = "FAULT-A3-26"
+area = "A3"
+title = "Godot 3 project.godot config_version"
+fixture = "lint_base"
+severity = "must"
+source = "03_lint.md section 5"
+apply = [
+  {op = "replace", path = "project.godot", old = "config_version=5", new = "config_version=4", count = 1},
+]
+run = {verb = "lint", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[lint\.g3-project\]'], not_regex = [], max_seconds = 15}

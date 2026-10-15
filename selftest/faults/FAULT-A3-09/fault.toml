@@ -1,0 +1,11 @@
+id = "FAULT-A3-09"
+area = "A3"
+title = "File.new()"
+fixture = "lint_base"
+severity = "must"
+source = "03_lint.md section 5"
+apply = [
+  {op = "write", path = "scripts/f.gd", text = "extends Node\nfunc _ready():\n\tvar f = File.new()\n"},
+]
+run = {verb = "lint", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[syn-file-dir-class\]'], not_regex = [], max_seconds = 15}

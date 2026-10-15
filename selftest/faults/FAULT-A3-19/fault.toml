@@ -1,0 +1,11 @@
+id = "FAULT-A3-19"
+area = "A3"
+title = "tab lines then an 8-space line"
+fixture = "lint_base"
+severity = "must"
+source = "03_lint.md section 5"
+apply = [
+  {op = "write", path = "scripts/f.gd", text = "extends Node\nfunc _ready():\n\tvar a = 1\n        print(a)\n"},
+]
+run = {verb = "lint", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['f\.gd:4: \[lint\.indent-mixed\]'], not_regex = [], max_seconds = 15}

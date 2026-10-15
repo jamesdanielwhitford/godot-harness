@@ -1,0 +1,10 @@
+id = "CLEAN-A3-01"
+area = "A3"
+title = "lint_base is clean"
+fixture = "lint_base"
+severity = "must"
+source = "03_lint.md section 5"
+apply = [
+]
+run = {verb = "lint", args = [], env = {}, no_project = false}
+expect = {rc = 0, verdict = "PASS", regex = [], not_regex = ['\['], max_seconds = 15}

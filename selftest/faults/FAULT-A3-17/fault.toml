@@ -1,0 +1,12 @@
+id = "FAULT-A3-17"
+area = "A3"
+title = "idle Timer node in a scene (R-08 strict harness.toml)"
+fixture = "lint_base"
+severity = "must"
+source = "03_lint.md section 5"
+apply = [
+  {op = "write", path = "harness.toml", text = "[lint]\nreplay_dirs = [\"res://\"]\n"},
+  {op = "write", path = "scenes/t.tscn", text = "[gd_scene format=3]\n\n[node name=\"Root\" type=\"Node\"]\n\n[node name=\"T\" type=\"Timer\" parent=\".\"]\n"},
+]
+run = {verb = "lint", args = [], env = {}, no_project = false}
+expect = {rc = 5, verdict = "WARN", regex = ['t\.tscn:\d+: \[lint\.det-idle-timer\]'], not_regex = [], max_seconds = 15}

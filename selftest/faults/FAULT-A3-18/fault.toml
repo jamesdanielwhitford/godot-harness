@@ -1,0 +1,11 @@
+id = "FAULT-A3-18"
+area = "A3"
+title = "raw KEY_SPACE outside remap code"
+fixture = "lint_base"
+severity = "must"
+source = "03_lint.md section 5"
+apply = [
+  {op = "write", path = "scripts/f.gd", text = "extends Node\nfunc _process(_d: float) -> void:\n\tif Input.is_key_pressed(KEY_SPACE):\n\t\tpass\n"},
+]
+run = {verb = "lint", args = [], env = {}, no_project = false}
+expect = {rc = 5, verdict = "WARN", regex = ['\[lint\.raw-keycode\]'], not_regex = [], max_seconds = 15}

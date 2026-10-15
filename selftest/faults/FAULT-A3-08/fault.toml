@@ -1,0 +1,11 @@
+id = "FAULT-A3-08"
+area = "A3"
+title = "OS.get_ticks_msec()"
+fixture = "lint_base"
+severity = "must"
+source = "03_lint.md section 5"
+apply = [
+  {op = "write", path = "scripts/f.gd", text = "extends Node\nfunc _ready():\n\tprint(OS.get_ticks_msec())\n"},
+]
+run = {verb = "lint", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[syn-os-ticks\]'], not_regex = [], max_seconds = 15}

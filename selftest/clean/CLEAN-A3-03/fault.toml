@@ -1,0 +1,11 @@
+id = "CLEAN-A3-03"
+area = "A3"
+title = "dodge_the_creeps with replay_dirs = []"
+fixture = "lint_clean_demo"
+severity = "must"
+source = "03_lint.md section 5"
+apply = [
+  {op = "write", path = "harness.toml", text = "[lint]\nreplay_dirs = []\n"},
+]
+run = {verb = "lint", args = [], env = {}, no_project = false}
+expect = {rc = 0, verdict = "PASS", regex = [], not_regex = [], max_seconds = 15}

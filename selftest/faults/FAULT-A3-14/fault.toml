@@ -1,0 +1,11 @@
+id = "FAULT-A3-14"
+area = "A3"
+title = "misspelt input action"
+fixture = "lint_base"
+severity = "must"
+source = "03_lint.md section 5"
+apply = [
+  {op = "write", path = "scripts/p2.gd", text = "extends CharacterBody2D\nfunc _physics_process(_delta: float) -> void:\n\tif Input.is_action_pressed(\"jumpp\"):\n\t\tvelocity.y = -300.0\n\tmove_and_slide()\n"},
+]
+run = {verb = "lint", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[lint\.input-action\] error: .*jumpp.*hint: .*jump'], not_regex = [], max_seconds = 15}

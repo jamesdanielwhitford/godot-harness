@@ -1,0 +1,11 @@
+id = "FAULT-A3-15"
+area = "A3"
+title = "emit_signal with misspelt name"
+fixture = "lint_base"
+severity = "must"
+source = "03_lint.md section 5"
+apply = [
+  {op = "write", path = "scripts/f.gd", text = "extends Node\nsignal hit\nfunc _ready() -> void:\n\temit_signal(\"hitt\")\n"},
+]
+run = {verb = "lint", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[lint\.signal-name\] error'], not_regex = [], max_seconds = 15}

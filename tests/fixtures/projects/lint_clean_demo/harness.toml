@@ -1,0 +1,2 @@
+[lint]
+replay_dirs = ["res://"]

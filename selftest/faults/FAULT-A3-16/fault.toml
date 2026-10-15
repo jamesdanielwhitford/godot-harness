@@ -1,0 +1,11 @@
+id = "FAULT-A3-16"
+area = "A3"
+title = "wall clock in sim code"
+fixture = "lint_base"
+severity = "must"
+source = "03_lint.md section 5"
+apply = [
+  {op = "write", path = "sim/clock.gd", text = "extends RefCounted\nfunc now() -> int:\n\treturn Time.get_ticks_msec()\n"},
+]
+run = {verb = "lint", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['clock\.gd:3: \[lint\.det-wallclock\] error'], not_regex = [], max_seconds = 15}

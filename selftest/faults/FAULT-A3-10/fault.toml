@@ -1,0 +1,11 @@
+id = "FAULT-A3-10"
+area = "A3"
+title = "format=3 scene with rect_position"
+fixture = "lint_base"
+severity = "must"
+source = "03_lint.md section 5"
+apply = [
+  {op = "write", path = "scenes/ui.tscn", text = "[gd_scene format=3]\n\n[node name=\"Root\" type=\"Control\"]\nrect_position = Vector2(4, 4)\n"},
+]
+run = {verb = "lint", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['ui\.tscn:\d+: \[tscn-rect-props\]'], not_regex = [], max_seconds = 15}

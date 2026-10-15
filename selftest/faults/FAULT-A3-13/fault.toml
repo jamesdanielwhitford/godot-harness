@@ -1,0 +1,12 @@
+id = "FAULT-A3-13"
+area = "A3"
+title = "idle Tween in replay dir (R-08 strict harness.toml)"
+fixture = "lint_base"
+severity = "must"
+source = "03_lint.md section 5"
+apply = [
+  {op = "write", path = "harness.toml", text = "[lint]\nreplay_dirs = [\"res://\"]\n"},
+  {op = "write", path = "scripts/fx.gd", text = "extends Node2D\nfunc _ready() -> void:\n\tvar t := create_tween()\n\tt.tween_property(self, \"position:x\", 10.0, 0.5)\n"},
+]
+run = {verb = "lint", args = [], env = {}, no_project = false}
+expect = {rc = 5, verdict = "WARN", regex = ['fx\.gd:3: \[lint\.det-idle-tween\] warning'], not_regex = [], max_seconds = 15}

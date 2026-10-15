@@ -1,0 +1,11 @@
+id = "FAULT-A3-27"
+area = "A3"
+title = "LSP parse error via diag --oneshot"
+fixture = "lint_base"
+severity = "nice"
+source = "03_lint.md section 5"
+apply = [
+  {op = "write", path = "scripts/bad.gd", text = "extends Node\nfunc _ready() -> void:\n\tvar a: int = 1\n\tvar b: int = = 2\n"},
+]
+run = {verb = "lsp", args = ["diag", "--oneshot", "{project}/scripts/bad.gd"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['bad\.gd:4: \[lint\.lsp\] error'], not_regex = [], max_seconds = 60}

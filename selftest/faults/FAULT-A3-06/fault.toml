@@ -1,0 +1,11 @@
+id = "FAULT-A3-06"
+area = "A3"
+title = ".instance()"
+fixture = "lint_base"
+severity = "must"
+source = "03_lint.md section 5"
+apply = [
+  {op = "write", path = "scripts/f.gd", text = "extends Node\nfunc _ready():\n\tvar s = PackedScene.new()\n\tvar n = s.instance()\n"},
+]
+run = {verb = "lint", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[syn-instance\]'], not_regex = [], max_seconds = 15}

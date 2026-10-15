@@ -1,0 +1,11 @@
+id = "FAULT-A3-25"
+area = "A3"
+title = "severity key that matches no rule"
+fixture = "lint_base"
+severity = "must"
+source = "03_lint.md section 5"
+apply = [
+  {op = "write", path = "harness.toml", text = "[lint]\nseverity = {\"syn-yeld\" = \"off\"}\n"},
+]
+run = {verb = "lint", args = [], env = {}, no_project = false}
+expect = {rc = 2, verdict = "ERROR", regex = ['syn-yeld'], not_regex = [], max_seconds = 15}

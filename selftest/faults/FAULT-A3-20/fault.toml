@@ -1,0 +1,11 @@
+id = "FAULT-A3-20"
+area = "A3"
+title = "NodePath in sim state"
+fixture = "lint_base"
+severity = "must"
+source = "03_lint.md section 5"
+apply = [
+  {op = "write", path = "sim/state.gd", text = "extends RefCounted\nvar target: NodePath\n"},
+]
+run = {verb = "lint", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['state\.gd:2: \[lint\.sim-node\]'], not_regex = [], max_seconds = 15}

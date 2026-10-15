@@ -1,0 +1,11 @@
+id = "FAULT-A3-07"
+area = "A3"
+title = "rand_range: specific rule wins over syn-rand-seed"
+fixture = "lint_base"
+severity = "must"
+source = "03_lint.md section 5"
+apply = [
+  {op = "write", path = "scripts/f.gd", text = "extends Node\nfunc _ready():\n\tprint(rand_range(0,1))\n"},
+]
+run = {verb = "lint", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[fn-rand_range\]'], not_regex = ['\[syn-rand-seed\]'], max_seconds = 15}

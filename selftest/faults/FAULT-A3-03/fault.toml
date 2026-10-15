@@ -1,0 +1,11 @@
+id = "FAULT-A3-03"
+area = "A3"
+title = "yield() call"
+fixture = "lint_base"
+severity = "must"
+source = "03_lint.md section 5"
+apply = [
+  {op = "write", path = "scripts/f.gd", text = "extends Node\nfunc _ready():\n\tyield(get_tree().create_timer(1.0), \"timeout\")\n"},
+]
+run = {verb = "lint", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['f\.gd:3: \[syn-yield\]'], not_regex = [], max_seconds = 15}

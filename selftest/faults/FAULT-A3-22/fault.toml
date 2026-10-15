@@ -1,0 +1,11 @@
+id = "FAULT-A3-22"
+area = "A3"
+title = "h check folds lint in (yield file)"
+fixture = "lint_base"
+severity = "must"
+source = "03_lint.md section 5"
+apply = [
+  {op = "write", path = "scripts/f.gd", text = "extends Node\nfunc _ready():\n\tyield(get_tree().create_timer(1.0), \"timeout\")\n"},
+]
+run = {verb = "check", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[syn-yield\]'], not_regex = [], max_seconds = 60}

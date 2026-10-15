@@ -1,0 +1,11 @@
+id = "FAULT-A3-02"
+area = "A3"
+title = "bare onready var"
+fixture = "lint_base"
+severity = "must"
+source = "03_lint.md section 5"
+apply = [
+  {op = "write", path = "scripts/f.gd", text = "extends Node\nonready var a = 1\nfunc _ready():\n\tpass\n"},
+]
+run = {verb = "lint", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['f\.gd:2: \[syn-onready\]'], not_regex = [], max_seconds = 15}
