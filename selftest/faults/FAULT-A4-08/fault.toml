@@ -1,0 +1,11 @@
+id = "FAULT-A4-08"
+area = "A4"
+title = "30 failing tests: output capped, findings truncated"
+fixture = "gd_tests"
+severity = "must"
+source = "04_test_runner.md section 5"
+apply = [
+  {op = "write", path = "tests/test_many_fail.gd", from = "files/test_many_fail.gd"},
+]
+run = {verb = "test", args = ["test_many_fail"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['^\.\.\. 23 more findings'], not_regex = [], max_seconds = 60}

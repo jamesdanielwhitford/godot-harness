@@ -1,0 +1,12 @@
+id = "FAULT-A4-04"
+area = "A4"
+title = "test that never returns hits the timeout"
+fixture = "gd_tests"
+severity = "must"
+source = "04_test_runner.md section 5"
+apply = [
+  {op = "write", path = "tests/test_hang.gd", from = "files/test_hang.gd"},
+  {op = "write", path = "harness.toml", text = "[timeouts]\ntest = 10\n"},
+]
+run = {verb = "test", args = ["test_hang"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['^res://tests/test_hang\.gd:2: \[harness\.hang\].*test_forever'], not_regex = [], max_seconds = 45}

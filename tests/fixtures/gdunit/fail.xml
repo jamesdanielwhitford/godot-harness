@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites id="2026-10-15" name="report_1" tests="3" failures="2" skipped="0" flaky="0" time="0.000">
+	<testsuite id="0" name="test_math" package="tests" timestamp="2026-10-15T16:06:17" hostname="localhost" tests="3" failures="2" errors="0" skipped="0" flaky="0" time="0.032">
+		<testcase name="test_ok" classname="test_math" time="0.006">
+		</testcase>
+		<testcase name="test_bad" classname="test_math" time="0.006">
+			<failure message="FAILED: res://tests/test_math.gd:6" type="FAILURE">
+<![CDATA[
+Expecting:
+ 3
+ but was
+ 2
+	at 'test_bad' in res://tests/test_math.gd:6
+]]>
+			</failure>
+		</testcase>
+		<testcase name="test_bad_str" classname="test_math" time="0.008">
+			<failure message="FAILED: res://tests/test_math.gd:8" type="FAILURE">
+<![CDATA[
+Expecting:
+ 'hello world'
+ but was
+ 'hello <LF>world'
+	at 'test_bad_str' in res://tests/test_math.gd:8
+]]>
+			</failure>
+		</testcase>
+	</testsuite>
+</testsuites>

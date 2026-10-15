@@ -1,0 +1,11 @@
+id = "FAULT-A4-01"
+area = "A4"
+title = "failing assert is reported with file:line"
+fixture = "gd_tests"
+severity = "must"
+source = "04_test_runner.md section 5"
+apply = [
+  {op = "write", path = "tests/test_math.gd", from = "files/test_math.gd"},
+]
+run = {verb = "test", args = ["test_math"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['^res://tests/test_math\.gd:6: \[test\.failed\] error: test_math::test_bad: Expecting: 3 but was 2'], not_regex = [], max_seconds = 60}

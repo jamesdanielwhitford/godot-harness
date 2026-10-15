@@ -1,7 +1,7 @@
-area: A4 test-runner      phase: plan      state: done
+area: A4 test-runner      phase: tests      state: done
 spec: .claude/plans/specs/04_test_runner.md (v2) @ uncommitted
-tests: 0 total (spec only; 21 ACs, 11 faults + 2 clean entries for T4)      lock: n/a
-updated: 2026-10-15 by planner re-run (claude-opus-5-5)
+tests: ~64 written, all red (verb missing); 11 faults + 2 clean written      lock: n/a
+updated: 2026-10-15 by test-writer T4 (sonnet)
 done:
 - v1 (444 lines): `h test` verb, rc map, `[test]` config, tests.json, layout convention, 17 spikes [Run] (K1-K17)
 - v2 (463 lines), REVIEW.md v1 applied:

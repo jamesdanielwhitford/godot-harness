@@ -1,0 +1,11 @@
+id = "FAULT-A4-09"
+area = "A4"
+title = "suite with no test functions selects zero tests"
+fixture = "gd_tests"
+severity = "must"
+source = "04_test_runner.md section 5"
+apply = [
+  {op = "write", path = "tests/test_empty.gd", from = "files/test_empty.gd"},
+]
+run = {verb = "test", args = ["test_empty"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[test\.no-tests\]'], not_regex = [], max_seconds = 10}

@@ -1,0 +1,11 @@
+id = "FAULT-A4-03"
+area = "A4"
+title = "orphan node leaked by a test"
+fixture = "gd_tests"
+severity = "must"
+source = "04_test_runner.md section 5"
+apply = [
+  {op = "write", path = "tests/test_leak.gd", from = "files/test_leak.gd"},
+]
+run = {verb = "test", args = ["test_leak"], env = {}, no_project = false}
+expect = {rc = 5, verdict = "WARN", regex = ['\[test\.orphans\] warning: test_leak::test_leaks_node'], not_regex = [], max_seconds = 60}

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites id="2026-10-15" name="report_1" tests="1" failures="0" skipped="0" flaky="0" time="0.000">
+	<testsuite id="0" name="test_buggy" package="tests" timestamp="2026-10-15T16:06:24" hostname="localhost" tests="1" failures="0" errors="1" skipped="0" flaky="0" time="0.038">
+		<testcase name="test_runs" classname="test_buggy" time="0.028">
+			<error message="ERROR: res://tests/test_buggy.gd:6" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+  'Cannot call method 'call' on a null value.'
+	at '_physics_process' in res://scripts/buggy.gd:6
+]]>
+			</error>
+		</testcase>
+	</testsuite>
+</testsuites>

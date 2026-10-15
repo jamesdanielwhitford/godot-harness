@@ -1,0 +1,9 @@
+id = "CLEAN-A4-02"
+area = "A4"
+title = "clean single test passes"
+fixture = "gd_tests"
+severity = "must"
+source = "04_test_runner.md section 5"
+apply = []
+run = {verb = "test", args = ["test_counter::test_add"], env = {}, no_project = false}
+expect = {rc = 0, verdict = "PASS", regex = ['^tests: 1 total, 1 passed'], not_regex = [], max_seconds = 90}

@@ -1,0 +1,38 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+[2J[H[38;2;233;150;122m
+--------------------------------------------------------------------------------------------------
+GdUnit4 Comandline Tool
+--------------------------------------------------------------------------------------------------[0m
+[38;2;0;191;255mDisabled fail fast![0m
+[38;2;0;191;255mSet write reports to /tmp/h/proj/.harness/gd/x[0m
+[38;2;218;165;32m
+Headless mode is ignored by option '--ignoreHeadlessMode'"
+
+Please note that tests that use UI interaction do not work correctly in headless mode.
+Godot 'InputEvents' are not transported by the Godot engine in headless mode and therefore
+have no effect in the test!
+[0m
+[38;2;100;149;237mInstalling GdUnit4 session system hooks.[0m
+[38;2;100;149;237mSession hook 'GdUnitHtmlTestReporter' installed.[0m
+[38;2;100;149;237mSession hook 'GdUnitXMLTestReporter' installed.[0m
+[38;2;0;206;209mRun Test Suite: [0m[38;2;250;235;215mres://tests/test_leak.gd[0m
+  [38;2;250;235;215mres://tests/test_leak.gd[0m[38;2;128;128;128m > [0m[38;2;250;235;215mtest_leaks_node[0m[38;2;34;139;34m STARTED[0m[38;2;128;128;128m[0m
+  [38;2;250;235;215mres://tests/test_leak.gd[0m[38;2;128;128;128m > [0m[38;2;250;235;215mtest_leaks_node[0m[38;2;34;139;34m PASSED[0m[38;2;100;149;237m 6ms[0m
+  [38;2;0;206;209m[1m[4mReport:[0m
+  [38;2;128;128;128m[38;2;184;134;11mWARNING:[0m Detected [38;2;30;144;255m1[0m possible orphan nodes.
+	[38;2;184;134;11m⚠️No details available. Run tests in debug mode to collect details.[0m[0m[38;2;128;128;128m[0m
+[38;2;128;128;128m[0m
+[38;2;30;144;255mStatistics:[0m[38;2;128;128;128m 1 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 1 orphans |[0m[38;2;34;139;34m PASSED[0m[38;2;100;149;237m 16ms[0m
+[38;2;128;128;128m[0m
+[38;2;128;128;128m[0m
+[38;2;30;144;255mOverall Summary:[0m[38;2;255;255;255m 1 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 1 orphans |[0m
+[38;2;233;150;122mExecuted test suites: (1/1)[0m
+[38;2;233;150;122mExecuted test cases : (1/1)[0m
+[38;2;233;150;122mTotal execution time: 16ms[0m
+[38;2;255;255;255m [0m[38;2;100;149;237mOpen XML Report at: file:///tmp/h/proj/.harness/gd/x/report_1/results.xml[0m
+[38;2;100;149;237mOpen HTML Report at: file:///tmp/h/proj/.harness/gd/x/report_1/index.html[0m
+[38;2;218;165;32mExit code: 101[0m
+Run dispose test resources
+WARNING: 1 ObjectDB instance was leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)

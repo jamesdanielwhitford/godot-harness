@@ -1,0 +1,11 @@
+id = "FAULT-A4-10"
+area = "A4"
+title = "user gdUnit4 copy at another version is not overwritten"
+fixture = "gd_tests"
+severity = "must"
+source = "04_test_runner.md section 5"
+apply = [
+  {op = "write", path = "addons/gdUnit4/plugin.cfg", from = "files/plugin.cfg"},
+]
+run = {verb = "test", args = [], env = {}, no_project = false}
+expect = {rc = 4, verdict = "ERROR", regex = ['gdUnit4 6\.1\.0'], not_regex = [], max_seconds = 10}

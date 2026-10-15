@@ -1,0 +1,14 @@
+; Engine configuration file.
+config_version=5
+
+[application]
+
+config/name="gd_tests"
+config/features=PackedStringArray("4.7")
+
+[input]
+
+jump={
+"deadzone": 0.5,
+"events": []
+}

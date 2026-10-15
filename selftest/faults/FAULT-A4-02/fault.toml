@@ -1,0 +1,11 @@
+id = "FAULT-A4-02"
+area = "A4"
+title = "parse error in a test file"
+fixture = "gd_tests"
+severity = "must"
+source = "04_test_runner.md section 5"
+apply = [
+  {op = "write", path = "tests/test_broken.gd", from = "files/test_broken.gd"},
+]
+run = {verb = "test", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['gdunit4: .*rc 105', '^res://tests/test_broken\.gd:3: \[godot\.parse-error\]'], not_regex = [], max_seconds = 60}

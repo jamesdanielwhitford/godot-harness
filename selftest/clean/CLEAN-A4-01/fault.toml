@@ -1,0 +1,9 @@
+id = "CLEAN-A4-01"
+area = "A4"
+title = "clean gd_tests passes, fresh copy auto-installs"
+fixture = "gd_tests"
+severity = "must"
+source = "04_test_runner.md section 5"
+apply = []
+run = {verb = "test", args = [], env = {}, no_project = false}
+expect = {rc = 0, verdict = "PASS", regex = ['^import: ran', '^gdunit4: v6\.2\.2 installed', '^tests: \d+ total, \d+ passed, 0 failed, 0 errors'], not_regex = [], max_seconds = 90}

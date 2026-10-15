@@ -1,0 +1,13 @@
+id = "FAULT-A4-05"
+area = "A4"
+title = "runtime error in game code called from a test"
+fixture = "gd_tests"
+severity = "must"
+source = "04_test_runner.md section 5"
+apply = [
+  {op = "write", path = "scripts/buggy.gd", from = "files/buggy.gd"},
+  {op = "write", path = "scenes/buggy.tscn", from = "files/buggy.tscn"},
+  {op = "write", path = "tests/test_buggy.gd", from = "files/test_buggy.gd"},
+]
+run = {verb = "test", args = ["test_buggy"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['^res://scripts/buggy\.gd:6: \[test\.error\]'], not_regex = ['^res://tests/test_buggy\.gd:6:'], max_seconds = 60}

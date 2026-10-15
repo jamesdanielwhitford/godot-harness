@@ -1,0 +1,11 @@
+id = "FAULT-A4-11"
+area = "A4"
+title = "single filtered test fails with a wrong expectation"
+fixture = "gd_tests"
+severity = "must"
+source = "04_test_runner.md section 5"
+apply = [
+  {op = "replace", path = "tests/sim/test_counter.gd", old = "is_equal(5)", new = "is_equal(6)", count = 1},
+]
+run = {verb = "test", args = ["--filter", "add_twice"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[test\.failed\] error: test_counter::test_add_twice', '^selected: 1 suites, 1 tests'], not_regex = [], max_seconds = 60}

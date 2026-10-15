@@ -1,0 +1,12 @@
+id = "FAULT-A4-06"
+area = "A4"
+title = "push_error from game code under test is a warning"
+fixture = "gd_tests"
+severity = "must"
+source = "04_test_runner.md section 5"
+apply = [
+  {op = "write", path = "scripts/noisy.gd", from = "files/noisy.gd"},
+  {op = "write", path = "tests/test_noisy.gd", from = "files/test_noisy.gd"},
+]
+run = {verb = "test", args = ["test_noisy"], env = {}, no_project = false}
+expect = {rc = 5, verdict = "WARN", regex = ['^res://scripts/noisy\.gd:\d+: \[godot\.error\] warning: noisy'], not_regex = [], max_seconds = 60}

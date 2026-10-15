@@ -1,0 +1,9 @@
+id = "FAULT-A4-07"
+area = "A4"
+title = "typo in target path is a usage error, not a silent pass"
+fixture = "gd_tests"
+severity = "must"
+source = "04_test_runner.md section 5"
+apply = []
+run = {verb = "test", args = ["res://tests/sim/test_countr.gd"], env = {}, no_project = false}
+expect = {rc = 2, verdict = "ERROR", regex = ['no such test path'], not_regex = [], max_seconds = 10}
