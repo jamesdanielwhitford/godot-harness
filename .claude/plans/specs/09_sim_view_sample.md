@@ -37,97 +37,75 @@ Rule ids: the `sim.` prefix (C §2.7) stays unused in v0; A9 relies on `lint.sim
 ### 2.2 Sim core (`templates/sim_view/sim/`, copied verbatim to `sample/sim/core/`)
 ```gdscript
 class_name SimThing extends RefCounted       # sim_thing.gd
-var id: int = 0                              # assigned by SimWorld.spawn; never reused
-var kind: String = ""
-func to_dict() -> Dictionary                 # {"id", "kind"} merged with _fields_to_dict()
-func load_dict(d: Dictionary) -> Error       # strict (SimCodec); then _fields_from_dict(d)
-func _fields_to_dict() -> Dictionary         # virtual, default {}
-func _fields_from_dict(d: Dictionary) -> Error   # virtual, default OK
+var id: int = 0 ; var kind: String = ""      # id assigned by SimWorld.spawn, never reused
+func to_dict() -> Dictionary                 # {"id", "kind"} merged with _fields_to_dict() (virtual, default {})
+func load_dict(d: Dictionary) -> Error       # strict via SimCodec, then _fields_from_dict(d) (virtual, default OK)
 
 class_name SimWorld extends RefCounted       # sim_world.gd
-var tick: int = 0                            # turns (turn-based) or ticks (real-time) applied by the rules
-var next_id: int = 1
+var tick: int = 0 ; var next_id: int = 1     # tick = turns or ticks applied by the rules
 var things: Dictionary[int, SimThing] = {}
 var rng := RandomNumberGenerator.new()       # the ONLY randomness rules may use
-var last_error: String = ""                  # set by load_dict on failure: "<json pointer>: <what>"
+var last_error: String = ""                  # set by load_dict/from_text on failure: "<json pointer>: <what>"
 func setup(seed: int) -> void                # rng.seed = seed (resets state); tick 0; next_id 1; things {}
 func spawn(thing: SimThing) -> int           # thing.id = next_id; next_id += 1; store; return id
-func despawn(id: int) -> bool
-func get_thing(id: int) -> SimThing          # null if absent
-func has_thing(id: int) -> bool
+func despawn(id: int) -> bool ; func get_thing(id: int) -> SimThing (null if absent) ; func has_thing(id) -> bool
 func ids() -> Array[int]                     # ascending; the only iteration order rules and views may use
-func to_dict() -> Dictionary                 # §2.5
-func load_dict(d: Dictionary) -> Error       # OK | ERR_INVALID_DATA (schema, version, type, missing key)
-func clone() -> SimWorld                     # same script, load_dict(to_dict()); previews and AI lookahead
+func to_dict() -> Dictionary                 # §2.5 ; _harness_state() returns the same (A5 entity protocol)
+func load_dict(d: Dictionary) -> Error       # OK | ERR_INVALID_DATA (schema, version, type, missing key); all or nothing
+func clone() -> SimWorld                     # same script via load_dict(to_dict()); previews, AI lookahead
 func state_hash() -> String                  # JSON.stringify(to_dict(), "", true, true).sha256_text()
-func _harness_state() -> Dictionary          # == to_dict() (A5 entity protocol)
-func schema_name() -> String                 # virtual, default "sim.world"
-func schema_version() -> int                 # virtual, default 1
-func migrate(d: Dictionary, from_version: int) -> Dictionary   # virtual; default returns d unchanged
-func _make_thing(kind: String) -> SimThing   # virtual factory used by load_dict; default SimThing.new()
-func _data_to_dict() -> Dictionary           # virtual world-level fields -> "data"
-func _data_from_dict(d: Dictionary) -> Error # virtual
+# virtuals: schema_name() -> String ("sim.world"), schema_version() -> int (1),
+#   migrate(d: Dictionary, from_version: int) -> Dictionary (identity), _make_thing(kind: String) -> SimThing,
+#   _data_to_dict() -> Dictionary (world fields under "data"), _data_from_dict(d: Dictionary) -> Error
 
 class_name SimRules extends RefCounted       # sim_rules.gd
-func commands() -> PackedStringArray         # virtual: command types this rules object handles
+func commands() -> PackedStringArray         # virtual: command types handled
 func validate(world: SimWorld, cmd: Dictionary) -> String      # virtual: "" ok, else a reason code
-func apply(world: SimWorld, cmd: Dictionary) -> Array          # events (Array of Dictionary)
-    # apply = validate first; on a reason returns [{"type":"rejected","cmd":<type>,"reason":<code>}] and the world
-    # is unchanged (state_hash equal); else _execute(world, cmd). Unknown type -> reason "unknown_command".
-func _execute(world: SimWorld, cmd: Dictionary) -> Array       # virtual; mutates, returns events
+func apply(world: SimWorld, cmd: Dictionary) -> Array          # events (Array of Dictionary): validate first; on a
+    # reason -> [{"type":"rejected","cmd":<type>,"reason":<code>}], world unchanged (state_hash equal); else
+    # _execute(world, cmd) (virtual, mutates, returns events). Unknown type -> reason "unknown_command".
 
-class_name SimCodec extends RefCounted       # sim_codec.gd; static helpers, all return null + set err on failure
-static func int_of(d: Dictionary, key: String, err: Array) -> Variant      # int or float with no fraction -> int
-static func str_of(d, key, err) -> Variant ; static func bool_of(d, key, err) -> Variant
-static func cell_of(d, key, err) -> Variant  # [x, y] ints -> Vector2i ; static func cell_to(v: Vector2i) -> Array
-static func int_dict_of(d, key, err) -> Variant   # {"k": int} with every value strict-int
-static func big_to_str(v: int) -> String ; static func str_to_big(s: String) -> int   # 64-bit exact (RNG)
-    # err: Array[String] collector; message "<key>: expected int, got 3.5"
+class_name SimCodec extends RefCounted       # sim_codec.gd; static; on failure return null and append to err
+static func int_of(d: Dictionary, key: String, err: Array) -> Variant   # int, or float with no fraction -> int
+# also str_of, bool_of, cell_of ([x, y] ints -> Vector2i), int_dict_of ({k: strict int}) with the same signature;
+# cell_to(v: Vector2i) -> Array ; big_to_str(v: int) -> String ; str_to_big(s: String) -> int (64-bit exact, RNG)
+# err messages: "<key>: expected int, got 3.5"
 
 class_name SimSnapshot extends RefCounted    # sim_snapshot.gd
 static func to_text(world: SimWorld) -> String     # JSON.stringify(to_dict(), "\t", true, true) + "\n"
-static func from_text(text: String, into: SimWorld) -> Error
-    # parse (ERR_PARSE_ERROR); version < into.schema_version(): into.migrate(d, v) stepwise; version > current or
-    # schema_name differs: ERR_INVALID_DATA; then into.load_dict(d). into.last_error explains every failure.
+static func from_text(text: String, into: SimWorld) -> Error   # ERR_PARSE_ERROR; older version: into.migrate()
+    # stepwise; newer version or other schema_name: ERR_INVALID_DATA; then into.load_dict(d); into.last_error set
 static func save_file(world: SimWorld, path: String) -> Error   # write path+".tmp", then DirAccess.rename_absolute
 static func load_file(path: String, into: SimWorld) -> Error
 ```
-Event convention: a Dictionary with `"type"` (snake_case String) and plain-data payload (int, String, bool,
-`[x, y]` cells); every event that changes something a view shows carries the **end state** (`"to"`, `"hp"`).
-Command convention = A5 CommandBus: `{"type", "target"?: "<int id as string>", "value"?}`.
+Events: Dictionaries with `"type"` (snake_case) and plain-data payload (int, String, bool, `[x, y]` cells); an
+event that changes something a view shows carries the **end state** (`"to"`, `"hp"`). Commands = A5 CommandBus
+shape `{"type", "target"?: "<int id as string>", "value"?}`.
 
 ### 2.3 View core (`templates/sim_view/view/`, copied verbatim to `sample/view/core/`)
 ```gdscript
-class_name ThingView extends Node2D          # thing_view.gd
-var thing_id: int = 0
+class_name ThingView extends Node2D          # thing_view.gd ; var thing_id: int
 func sync_from(thing: SimThing) -> void      # virtual: snap every shown fact to the thing's state, no animation
 func digest() -> Dictionary                  # virtual; default {"id", "pos": [roundi(x), roundi(y)], "visible"}
 
-class_name SimView extends Node2D            # sim_view.gd
-signal events_applied(count: int)
+class_name SimView extends Node2D            # sim_view.gd ; signal events_applied(count: int)
 var world: SimWorld                          # read-only by contract: views never write to it (AC-09.14)
 func bind(w: SimWorld) -> void               # world = w; rebuild()
-func apply_events(events: Array) -> void     # for each: _on_event(ev) (animation only); then _reconcile():
-    # free views whose id is not in world.ids(); create views for new ids; sync_from() every remaining view
-func rebuild() -> void                       # free all thing views; one _make_view() per world.ids(); sync_from
-func view_of(id: int) -> ThingView
-func view_digest() -> Dictionary             # {"t<id>": view.digest()} for every view, keys sorted
+func apply_events(events: Array) -> void     # _on_event(ev) each (animation only), then _reconcile(): free views
+    # whose id left world.ids(), create views for new ids, sync_from() every view
+func rebuild() -> void                       # free all views; _make_view() per world.ids(); sync_from
+func view_of(id: int) -> ThingView ; func view_digest() -> Dictionary   # {"t<id>": digest()}, keys sorted
 func finish_animations() -> void             # every running tween of the view jumps to its end
-func _make_view(thing: SimThing) -> ThingView   # virtual
-func _on_event(ev: Dictionary) -> void       # virtual; tweens via create_tween().set_process_mode(TWEEN_PROCESS_PHYSICS)
+# virtuals: _make_view(thing: SimThing) -> ThingView ; _on_event(ev: Dictionary) -> void (physics-mode tweens)
 
 class_name SimHost extends Node              # sim_host.gd: the only glue between input, CommandBus, sim, view
-@export var view: SimView
-var world: SimWorld
-var rules: SimRules
-signal events(events: Array)
-func start(w: SimWorld, r: SimRules) -> void
-    # Harness.register("world", w); CommandBus.handle(t, _handle) for t in r.commands();
-    # CommandBus.set_resolver(func(t): t.is_valid_int() and world.has_thing(t.to_int())); view.bind(w)
+@export var view: SimView ; var world: SimWorld ; var rules: SimRules ; signal events(events: Array)
+func start(w: SimWorld, r: SimRules) -> void # Harness.register("world", w); CommandBus.handle(t, _handle) per
+    # r.commands(); CommandBus.set_resolver(id string is_valid_int and world.has_thing); view.bind(w)
 func submit(cmd: Dictionary) -> Array        # = CommandBus.submit(cmd); input code calls ONLY this
-func save_to(path: String) -> Error          # SimSnapshot.save_file
-func load_from(path: String) -> Error        # into a fresh world of the same script; on OK swap + view.bind()
+func save_to(path: String) -> Error ; func load_from(path: String) -> Error   # load: fresh world, swap, bind
 ```
+`_handle(cmd)` = `rules.apply(world, cmd)`, then `view.apply_events(evs)`, emit `events`, return `evs`.
 `_handle(cmd)` = `rules.apply(world, cmd)`, then `view.apply_events(evs)`, emit `events`, return `evs`.
 
 ### 2.4 Project template (`templates/project/`) and the "small" tier
