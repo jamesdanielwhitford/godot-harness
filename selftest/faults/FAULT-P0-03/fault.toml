@@ -1,0 +1,12 @@
+id = "FAULT-P0-03"
+area = "P0"
+title = "parse-broken script attached to a scene (scene itself loads, rc 0)"
+fixture = "clean_min"
+severity = "must"
+source = "00_contract.md section 5"
+apply = [
+  {op = "write", path = "scripts/broken.gd", from = "files/broken.gd"},
+  {op = "write", path = "scenes/uses_broken.tscn", from = "files/uses_broken.tscn"},
+]
+run = {verb = "check", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['^res://scripts/broken\.gd:4: \['], not_regex = [], max_seconds = 40}

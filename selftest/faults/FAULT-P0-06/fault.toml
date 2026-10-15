@@ -1,0 +1,12 @@
+id = "FAULT-P0-06"
+area = "P0"
+title = "project code quits rc 0 before the runner prints done (R-25)"
+fixture = "clean_min"
+severity = "must"
+source = "00_contract.md section 5 (REVIEW R-25)"
+apply = [
+  {op = "write", path = "scripts/quit_early.gd", from = "files/quit_early.gd"},
+  {op = "write", path = "scenes/quit_early.tscn", from = "files/quit_early.tscn"},
+]
+run = {verb = "check", args = ["--smoke"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[harness\.runner-incomplete\]'], not_regex = [], max_seconds = 40}

@@ -1,0 +1,11 @@
+id = "FAULT-P0-05"
+area = "P0"
+title = "unknown key in harness.toml"
+fixture = "clean_min"
+severity = "must"
+source = "00_contract.md section 5"
+apply = [
+  {op = "write", path = "harness.toml", text = "[harness]\ntick_rat = 60\n"},
+]
+run = {verb = "check", args = [], env = {}, no_project = false}
+expect = {rc = 2, verdict = "ERROR", regex = ['tick_rat'], not_regex = [], max_seconds = 5}

@@ -1,0 +1,11 @@
+id = "FAULT-P0-08"
+area = "P0"
+title = "project.godot deleted"
+fixture = "clean_min"
+severity = "must"
+source = "00_contract.md section 5"
+apply = [
+  {op = "delete", path = "project.godot"},
+]
+run = {verb = "check", args = [], env = {}, no_project = false}
+expect = {rc = 2, verdict = "ERROR", regex = ['no Godot project'], not_regex = [], max_seconds = 5}

@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/hang.gd" id="1_a"]
+
+[node name="Hang" type="Node"]
+script = ExtResource("1_a")

@@ -1,0 +1,13 @@
+id = "FAULT-P0-02"
+area = "P0"
+title = "scene script hangs in _init during load-check"
+fixture = "clean_min"
+severity = "must"
+source = "00_contract.md section 5"
+apply = [
+  {op = "write", path = "scripts/hang.gd", from = "files/hang.gd"},
+  {op = "write", path = "scenes/hang.tscn", from = "files/hang.tscn"},
+  {op = "write", path = "harness.toml", text = "[timeouts]\nrunner = 5\n"},
+]
+run = {verb = "check", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[harness\.hang\]'], not_regex = [], max_seconds = 40}

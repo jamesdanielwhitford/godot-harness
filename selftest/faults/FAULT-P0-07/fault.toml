@@ -1,0 +1,12 @@
+id = "FAULT-P0-07"
+area = "P0"
+title = "scene script calls OS.crash in _init"
+fixture = "clean_min"
+severity = "must"
+source = "00_contract.md section 5"
+apply = [
+  {op = "write", path = "scripts/crash.gd", from = "files/crash.gd"},
+  {op = "write", path = "scenes/crash.tscn", from = "files/crash.tscn"},
+]
+run = {verb = "check", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[harness\.crash\]'], not_regex = [], max_seconds = 40}

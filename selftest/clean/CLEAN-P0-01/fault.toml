@@ -1,0 +1,9 @@
+id = "CLEAN-P0-01"
+area = "P0"
+title = "clean_min passes check (first run imports)"
+fixture = "clean_min"
+severity = "must"
+source = "00_contract.md section 5"
+apply = []
+run = {verb = "check", args = [], env = {}, no_project = false}
+expect = {rc = 0, verdict = "PASS", regex = ['^import: ran'], not_regex = [], max_seconds = 60}

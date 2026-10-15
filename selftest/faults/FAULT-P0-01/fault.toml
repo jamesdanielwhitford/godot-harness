@@ -1,0 +1,9 @@
+id = "FAULT-P0-01"
+area = "P0"
+title = "godot binary missing"
+fixture = "clean_min"
+severity = "must"
+source = "00_contract.md section 5"
+apply = []
+run = {verb = "check", args = [], env = {HARNESS_GODOT = "/nonexistent/godot"}, no_project = false}
+expect = {rc = 4, verdict = "ERROR", regex = ['godot binary not found'], not_regex = [], max_seconds = 5}
