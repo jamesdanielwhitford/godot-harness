@@ -1,6 +1,7 @@
 # 05 Scenario / replay runner (A5, planner P5; absorbs R2.2)
 
-Status: spec v1, 2026-10-15, Opus planner P5. Conforms to `00_contract.md` (v1); deviations are listed in §8.
+Status: spec v2, 2026-10-15, Opus planner P5 re-run. Conforms to `00_contract.md` (B01-B07 applied) and REVIEW B16
+(R-15, R-18, R-19, R-20, R-34), N07, N15, N17; deviations are listed in §8.
 Tags: [Run] verified in §3.6 spikes (Godot 4.7.stable.official.5b4e0cb0f, scratchpad `a5/`), [U] unverified.
 
 ## 1. Purpose and failure modes covered
@@ -9,14 +10,14 @@ Tags: [Run] verified in §3.6 spikes (Godot 4.7.stable.official.5b4e0cb0f, scrat
 and a determinism verdict, so the agent can prove behaviour ("the player reaches x >= 400 by tick 180") instead of
 claiming it. It also lets the agent catch nondeterminism it introduced, which it cannot see by reading code.
 - **C6** (plan): seeded fixed-step replay, addressable state, command stream; the article's core loop.
-- **F10** physics behaviour (floor detection, tunnelling) is checked by scenario asserts on dumped state.
-- **F2/D2** "it parses" is not evidence: asserts report measured values; `run.no-asserts` warns on empty scenarios.
+- **F10/F2/D2** physics behaviour is checked by asserts on dumped state that report measured values; `run.no-asserts`
+  warns on empty scenarios ("it parses" is not evidence).
 - **Determinism (R1.8)**: global RNG, idle-mode Tween/Timer/AnimationPlayer, `_process` delta in gameplay,
   unseeded `RandomNumberGenerator`, wall-clock time: caught at run time by `--twice` with perturbation and a cause hint
   (static bans are A3's lint; this is the dynamic net).
 - **B7**: golden = exact hash first, tolerance fallback; "hash differs, tolerance passes" = WARN.
-- **R1.6**: commands address stable entity ids, never NodePaths; state is plain data (`run.state-nonserializable`).
-- **Exit codes lie (R1.1, S2)**: runtime `SCRIPT ERROR`s during a replay fail the run even if every assert passes.
+- **R1.6**: commands address entity ids, never NodePaths; state is plain data. **R1.1**: runtime `SCRIPT ERROR`s
+  fail the run even if every assert passes.
 
 ## 2. Interfaces
 
@@ -74,7 +75,8 @@ one check line per scenario `OK   res://scenarios/a.json: 6/6 asserts, hash 9f57
 Rule ids (all `run.`): `run.assert`, `run.nondeterministic`, `run.golden-mismatch`, `run.golden-drift` (warning),
 `run.golden-stale`, `run.unknown-action`, `run.unknown-target`, `run.unknown-command`, `run.state-nonserializable`,
 `run.bind`, `run.no-asserts`, `run.time-scale`, `run.state-large` (these three: warning), `run.tick-skipped`,
-`run.scenario` (rc 2 schema/semantic errors), `run.not-synced` (rc 2). Finding locations: `run.assert`, `run.unknown-*`,
+`run.scenario` (rc 2 schema/semantic errors), `run.not-synced` (rc 2 from the verb pre-check; if the runner itself
+finds an autoload missing it emits it as an error and `done` rc 1, R-34). Finding locations: `run.assert`, `run.unknown-*`,
 `run.bind`, `run.golden-*`, `run.scenario` -> the scenario file (res:// if inside the project, no line);
 `run.state-nonserializable`, `run.nondeterministic` -> the entity's script path (`res://...gd`) if it has one, else the
 scenario file. Assert messages always contain `got <measured>` and the expected op/value (§3.4).
@@ -139,7 +141,8 @@ Semantic rules (checked in Python after the schema; violations -> rc 2, finding 
 ### 2.3 In-engine APIs (autoloads installed by `h sync`; files in `addons/harness/`; no `class_name`)
 ```gdscript
 # Harness  (addons/harness/harness.gd, extends Node). Dormant unless the scenario runner activates it.
-signal tick_completed(tick: int)            # emitted by the runner after tick k's dumps/hashes (A6/A7 sample here)
+signal tick_completed(tick: int)            # emitted by the runner after tick k's dumps/hashes (A6/A7 sample here);
+    # also for tick 0 (in _begin, before the tick-1 inputs), so ticks + 1 times per run (R-18)
 func is_active() -> bool                    # true only under `h run` / `h trace` / `h shot <scenario>`
 func tick() -> int                          # completed ticks under the runner; else Engine.get_physics_frames()
 func register(id: Variant, obj: Object) -> bool  # id: int|String -> str(id), must match ^[A-Za-z0-9_:-]{1,64}$;
@@ -164,7 +167,9 @@ func save() -> Dictionary                   # {"seed": int, "streams": {name: {"
 func restore(d: Dictionary) -> void         # seed first, then state (R1.8)
 # CommandBus  (addons/harness/command_bus.gd, extends Node)
 signal events_emitted(cmd: Dictionary, events: Array)
-func handle(type: String, handler: Callable) -> void    # handler(cmd: Dictionary) -> Array (events); one per type
+func handle(type: String, handler: Callable) -> void    # handler(cmd: Dictionary) -> Array (events); one per type;
+    # a second handle() for the same type silently replaces the first (R-20)
+func unhandle(type: String) -> void         # removes the handler; unknown type: no-op (SimHost calls it on tree_exiting)
 func set_resolver(resolver: Callable) -> void           # resolver(target: String) -> bool; default Harness.has_entity
 func submit(cmd: Dictionary) -> Array       # cmd = {type, target?, value?}; adds "seq" (1-based) and "tick".
     # No handler -> push_error("CommandBus: unknown command '<type>'"), returns [].
@@ -205,27 +210,51 @@ none|skipped (<why>)`. Goldens are regression records, not human judgements (D4 
 
 ### 2.6 Config (`harness.toml`, `CONFIG_TABLE = "run"`)
 `[run] golden_tol = 0.001` (float > 0), `hash_every = 1` (int >= 1), `required_autoloads = ["Harness","Rng",
-"CommandBus"]` (list of str). Timeout: contract kind `scenario` (120 s, `[timeouts] scenario`), per Godot invocation.
+"CommandBus"]` (list of str; stays 3 although the contract default autoloads add `Trace`, R-16). Timeout: contract
+kind `scenario` (120 s, `[timeouts] scenario`), per Godot invocation. `run.py` is the only module declaring `"run"`.
+
+### 2.7 Python API (public; R-01, R-19)
+```python
+# harness/scenario.py  (stdlib only, no I/O beyond reading/writing the given files; unit tests may import it)
+def load(path, vars=None, seed=None, ticks=None) -> dict      # resolved scenario; raises ScenarioError(pointer, what)
+def write_resolved(d: dict, path) -> None                     # scenario.resolved.json, sorted keys
+def resolve(state: dict, path: str) -> tuple[object, str|None]   # (value, reason if missing)
+def eval_asserts(resolved: dict, states: list, metrics: dict) -> list[dict]   # asserts.json entries
+def compare_golden(golden: dict, scenario_sha256: str, state: dict, states: list) -> dict   # {status, findings, n}
+# harness/replay.py  (uses godot.py; NOT importable by unit tests)
+def run_scenario(run, project, resolved: Path, *, fps: int, global_seed: int, out_dir: Path, extra_user_args=(),
+                 extra_args=(), display="headless", kind="scenario") -> RunResult
+# RunResult: invocation, out_dir, state (state.json|None), ticks_path, states_path, events_path, metrics, findings
+```
+`run_scenario` = `godot.run(kind, runner=<repo>/addons/harness/runners/scenario.gd, args=["--fixed-fps", str(fps),
+*extra_args], user_args=["--scenario=..", "--out=..", "--fps=..", "--global-seed=..", *extra_user_args], display)`.
+No sync/import (callers do it once), no asserts/goldens/`run.no-asserts`, no `run.add_findings`. Callers: `h run`,
+A6 (kind `shot`, `xvfb`, `--shot-at=`), A7 (kind `scenario`/`movie`, `--trace=`, `--write-movie` in `extra_args`).
 
 ## 3. Design
 
 ### 3.1 Files (builder B5 writes exactly these)
 - `tools/harness/harness/verbs/run.py` (CLI, orchestration, output), `tools/harness/harness/scenario.py` (stdlib
   only: load + validate + substitute + semantic checks, path resolution, assert eval, golden read/write/compare,
-  state diff), `tools/harness/schemas/scenario.schema.json` (§2.2 verbatim).
-- `addons/harness/{harness,rng,command_bus}.gd`, `addons/harness/runners/scenario.gd`. Nothing to port verbatim;
+  state diff), `tools/harness/harness/replay.py` (`run_scenario`, §2.7; R-19),
+  `tools/harness/schemas/scenario.schema.json` (§2.2 verbatim).
+- `addons/harness/{harness,rng,command_bus}.gd`, `addons/harness/runners/scenario.gd` (A5 owns it entirely, including
+  the `--shot-at` block, R-15; A6 only ships `_capture.gd`). Nothing to port verbatim;
   `research/scripts/r1_8_determinism/main.gd` shows the fixed-tick loop and hashing (here: sorted JSON, §3.6 S6).
 
 ### 3.2 Runner `addons/harness/runners/scenario.gd` (extends SceneTree, self-contained, contract §2.8.5)
-User args: `--scenario=<abs resolved json> --out=<abs dir> --fps=<int> --global-seed=<int> [--dump-ticks=a,b,..]`.
+User args: `--scenario=<abs resolved json> --out=<abs dir> --fps=<int> --global-seed=<int> [--dump-ticks=a,b,..]
+[--shot-at=<abs plan json>]`. Any other `--x=` user arg is ignored (A7's `--trace=` is read by the Trace autoload).
 1. `_initialize()`: parse args (bad -> `done` rc 2). Find `/root/Harness`, `/root/Rng`, `/root/CommandBus`
-   (`root.get_node_or_null`, no preload). Missing -> finding `[run.not-synced]`, rc 2. Set
+   (`root.get_node_or_null`, no preload). Missing -> finding `[run.not-synced] error` naming the autoload, then
+   `done` rc 1 and `quit(1)` (R-34: runner rc 2 would map to verb rc 3). Set
    `Engine.physics_ticks_per_second = tick_rate`; `seed(global_seed)` (global RNG poisoning, §3.3);
    `Rng.seed_all(seed)`; activate Harness. `load(scene)`; `can_instantiate()` check (S2) else finding + `quit(1)`;
-   instantiate, `root.add_child`, `current_scene = it`. Connect `root.ready` (one-shot) to `_begin`: at
-   `_initialize` the root is not in the tree yet and `_ready` has not run [Run S1].
+   instantiate, `root.add_child`, `current_scene = it`; `--shot-at` setup (step 6). Connect `root.ready` (one-shot)
+   to `_begin`: at `_initialize` the root is not in the tree yet and `_ready` has not run [Run S1].
 2. `_begin()`: register `bind` entities (node path relative to the scene root; missing node or prop -> `[run.bind]`
-   error, quit 1); record tick 0 (hash, dumps); apply inputs/commands for tick 1; `base = Engine.get_physics_frames()`.
+   error, quit 1); record tick 0 (hash, dumps); emit `Harness.tick_completed(0)` (R-18); apply inputs/commands for
+   tick 1; `base = Engine.get_physics_frames()`.
 3. `_process(delta) -> bool` (MainLoop virtual; runs after the frame's physics steps): `c = physics_frames - base`.
    `c == done` -> return. `c > done + 1` -> finding `[run.tick-skipped]` error, quit 1 (fps < tick rate; cannot
    happen with the verb's fps values). Else `done = c`: record tick `done` (entity hashes every `hash_every`,
@@ -237,17 +266,24 @@ User args: `--scenario=<abs resolved json> --out=<abs dir> --fps=<int> --global-
    Holds are expanded by Python into explicit releases. Commands: `CommandBus.submit(cmd)`; the runner checks the
    handler and target first and reports `[run.unknown-command]` / `[run.unknown-target]` (`commands[i] target
    'ghost' is not a registered entity at tick 10`) instead of submitting.
-5. Finish: write the §2.4 runner files to `--out`, print `@@H` stats (`ticks`, `hash`, `chain`, `events`), then
-   `{"t":"done","rc":N}` and `quit(N)` (0 clean, 1 runner findings); no `done` = incomplete output.
+5. Finish: write the §2.4 runner files to `--out`, print `@@H` stats (`ticks`, `hash`, `chain`, `events`); drain the
+   capture (step 6); then `{"t":"done","rc":N}` and `quit(N)` (0 clean, 1 runner findings); no `done` = incomplete.
+6. `--shot-at` (A6 scenario mode, R-15): in step 1, parse the plan JSON (bad -> `done` rc 2),
+   `cap = load(plan.capture_script)` (absolute path, contract §2.8.5 library rule; `can_instantiate()` else
+   finding + `quit(1)`), `.new()`, `root.add_child(cap)`, `cap.start(plan, Harness)`; the capture samples on
+   `Harness.tick_completed`. In step 5, before `done`: let frames run (`_process` returns false; no more ticks
+   recorded, no inputs applied) while `cap.pending() > 0`, at most 120 frames; if still pending, finding
+   `[harness.runner-incomplete] error: capture still pending after 120 frames` and rc 1. Covered by A6 AC-06.25.
 
 ### 3.3 Verb flow (`run.py`) and `--twice`
 1. Resolve project, config, scenario paths; `scenario.load()` (schema, vars, semantics, unknown actions). Check that
    `required_autoloads` are declared in project.godot `[autoload]`: missing -> rc 2 `[run.not-synced]`
    `Harness autoload not declared in project.godot (run h sync)`. Then `sync.ensure_synced(run, project)` (A1, §8)
    prints `sync: fresh|ran (<why>)`; `godot.ensure_imported()` prints `import:`.
-2. Run A: `godot.run(kind="scenario", runner=$HARNESS_REPO/addons/harness/runners/scenario.gd, args=["--fixed-fps",
-   str(tick_rate)], user_args=[..., "--fps=<tick_rate>", "--global-seed=<g(seed,'A')>"])`, g = first 8 bytes of
-   sha256(f"{seed}:{tag}") as int. Verdict merge per contract §2.8.6 (scan + rc + runner).
+2. `scenario.write_resolved()` to `artifacts/scenario.resolved.json`. Run A: `replay.run_scenario(run, project,
+   <that file>, fps=tick_rate, global_seed=g(seed,'A'), out_dir=artifacts[/A])`, g = first 8 bytes of
+   sha256(f"{seed}:{tag}") as int; then `run.add_findings(res.findings)` (merge per contract §2.8.6). Runs B and
+   diagnosis runs below use the same helper with their fps/seed and `extra_user_args=["--dump-ticks=k"]`.
 3. Evaluate asserts from run A's `states.jsonl`/`metrics.json` (§3.4); write `asserts.json`.
 4. `--twice`: run B with fps = 2 x tick_rate and global seed g(seed,'B'). Physics results do not depend on the render
    frame rate and B still sees one tick per frame boundary [Run S3]. Compare `ticks.jsonl` line by line; first
@@ -281,26 +317,20 @@ User args: `--scenario=<abs resolved json> --out=<abs dir> --fps=<int> --global-
 
 ### 3.6 Spikes [Run] (scratchpad `a5/proj`: CharacterBody2D player on a StaticBody2D floor, `-s` runner by absolute
 path, `--headless --fixed-fps N`)
-- **S1 autoloads and timing.** `-s /abs/runners/run.gd` + project autoload: `autoload Harness present: true`. In
-  `_initialize`: `root.is_inside_tree=false entities=0`; via `root.ready` one-shot: `in _begin: entities=["player"]
-  pf=0`. A runner `SCRIPT ERROR ... on a null instance` in `_initialize` did NOT stop the run (scan, not rc).
-- **S2 input injection.** From the runner's `_physics_process` or `physics_frame` at tick 40 (runner runs before
-  nodes, `player_last_pf=39`): `player sees pressed at pf=40 just=false`, `jp_ticks=[41]` (off by one), for both
-  `action_press` and `parse_input_event`. From `_process` after tick 39: `pressed at pf=40 just=true`, `jp_ticks=[40]`;
-  `parse_input_event` also gave `unhandled_input jump at pf=39 in_phys=false`. Decision: `_process` + parse + flush.
-- **S3 repeatability (the required 3x CharacterBody2D run).** 120 ticks, jump at 40, right 0.5: fps 60 / fps 60 /
-  fps 120 (global seed 111/111/222) -> `HASH eeac768da177db8b chain=c219efcb2ce5b2a4` all three. 600 ticks x3:
-  `HASH 1f9d41f5e9553c1e chain=02b26d430cca6339` x3. `--fixed-fps 30` (< tick rate): `skipped=60`, jump never seen
-  -> fps must be >= tick rate (B uses 2x).
-- **S4 timing.** 600 ticks: process wall 0.367 / 0.367 / 0.398 s; in-runner 120-131 ms incl. per-tick hashing.
-- **S5 fault detection (A = fps 60 seed 111 twice, B = fps 120 seed 222; final / chain):** clean: equal / equal.
-  global `randf()` in `_physics_process`: A `0233681b...`, B `a95e88fe...` (differ). idle-mode Tween on a state
-  field (1.3 s): final EQUAL `64ac2ff3...` but chain differs `86c5be68...` vs `8dbdd259...` -> per-tick hashes are
-  required. `_process` delta: `9f5fca4e...` vs `8510a446...`. Physics-mode Tween: equal. Unseeded
-  `RandomNumberGenerator.new()` (same fps+seed) x3 and unseeded global `randf()` x3: three different hashes each.
-- **S6 JSON.** `JSON.stringify(d, "", true, true)` -> `{"a":0.10000000149011612,"b":0.1,"big":1e+300,"f":3.0,
-  "i":3,"neg0":0.0}` (sorted, full precision; float32 widened exactly). A `NodePath` is silently written as
-  `"A/B"` and `INF` as `1e99999`, so the runner must type-check before stringify (§2.3).
+- **S1 autoloads/timing.** Project autoloads exist under `-s`. In `_initialize`: `root.is_inside_tree=false
+  entities=0`; via `root.ready` one-shot: `entities=["player"] pf=0`. A runner `SCRIPT ERROR` did NOT stop the run.
+- **S2 input injection.** From the runner's `_physics_process`/`physics_frame` at tick 40: `pressed at pf=40
+  just=false`, `jp_ticks=[41]` (off by one), for `action_press` and `parse_input_event`. From `_process` after tick
+  39: `just=true`, `jp_ticks=[40]`, plus `_unhandled_input`. Decision: `_process` + parse + flush.
+- **S3 repeatability (3x CharacterBody2D).** 120 ticks: fps 60/60/120 (global seed 111/111/222) -> `HASH
+  eeac768da177db8b chain=c219efcb2ce5b2a4` x3; 600 ticks: `1f9d41f5e9553c1e chain=02b26d430cca6339` x3.
+  `--fixed-fps 30` (< tick rate): `skipped=60`, jump never seen -> fps must be >= tick rate (B uses 2x).
+- **S4 timing.** 600 ticks: process wall 0.37-0.40 s; in-runner 120-131 ms incl. per-tick hashing.
+- **S5 fault detection (A fps 60 seed 111, B fps 120 seed 222).** Clean: equal. Global `randf()`: differ. Idle
+  Tween: final EQUAL, chain differs -> per-tick hashes required. `_process` delta: differ. Physics Tween: equal.
+  Unseeded `RandomNumberGenerator.new()` / global `randf()` x3 at same fps+seed: three different hashes each.
+- **S6 JSON.** `JSON.stringify(d, "", true, true)` sorts keys, full precision (`0.10000000149011612`, `3.0`); a
+  `NodePath` is silently written as `"A/B"`, `INF` as `1e99999` -> type-check before stringify (§2.3).
   `("7:default").sha256_buffer().decode_s64(0)` = 7278379237195912242.
 
 ## 4. Acceptance criteria (fixture `scenario_min` copied per B3 unless stated; every result passes `assert_contract`)
@@ -308,7 +338,8 @@ path, `--headless --fixed-fps N`)
   0 fail`, `golden: none`, `hash: [0-9a-f]{16} chain [0-9a-f]{16}`. [contract]
 - AC-05.2 Artifacts exist and parse: `state.json` (`schema`, 64-hex `hash` whose first 16 hex equal the stdout
   value, `entities.player`, `meta.tick_rate == 60`), `states.jsonl`, `ticks.jsonl` (121 lines for 120 ticks),
-  `events.jsonl` (has `jump_pressed` at tick 40), `metrics.json` (`metrics.ticks == 120`, `events.jump_pressed == 1`),
+  `events.jsonl` (has `jump_pressed` at tick 40), `metrics.json` (`metrics.ticks == 120`, `events.jump_pressed == 1`,
+  `tick_signals == 121`, R-18),
   `asserts.json` (6 entries), `scenario.resolved.json`. [contract]
 - AC-05.3 Two separate `h run` of jump.json give identical `state.json.hash` and `chain`. [contract]
 - AC-05.4 `--twice` on jump.json and mover.json -> rc 0, stat `twice: identical (A 60 fps vs B 120 fps, global seed
@@ -359,7 +390,9 @@ path, `--headless --fixed-fps N`)
   a Fisher-Yates reference on a fresh stream; `pick([])` -> null. [gd]
 - AC-05.26 Harness/CommandBus (gdUnit4): register bad/duplicate id -> false + error; node auto-unregisters on free;
   `is_active()` false outside the runner; `submit` with no handler -> [] and push_error; unknown target -> handler
-  not called; handler events get `seq`; Object events with `to_dict()` accepted. [gd]
+  not called; handler events get `seq`; Object events with `to_dict()` accepted; a second `handle()` for the same
+  type replaces the first (only the second is called, no error); `unhandle(type)` then `submit` -> [] + push_error;
+  `unhandle` of an unknown type is a no-op (R-20). [gd]
 - AC-05.27 `Engine.time_scale = 2.0` set by the game -> rc 5 `[run.time-scale]` (once). [contract]
 - AC-05.28 `h selftest --area A5` -> all must faults CAUGHT, CLEAN-A5-* PASS, wall <= 120 s. [contract, slow]
 
@@ -401,6 +434,7 @@ Fixture hook lines (exact text in `scripts/player.gd`, one each): `	pass # HOOK-
   -> `{position, velocity, on_floor, input_events, tw_x}` merged with `extra`.
 - `scripts/mover.gd`: registers "mover"; per physics tick `n += 1; x += 1.5` (exact: `n = k`, `x = 1.5 k`).
 - `scripts/dice.gd`: registers "dice"; per tick `sum += Rng.stream(&"dice").randi_range(1, 6)`.
+- `scripts/level.gd` also connects `Harness.tick_completed` to `Harness.metric("tick_signals", 1, "add")` (R-18).
 - `scenarios/jump.json` (seed 7, 120 ticks: right strength 0.5 from tick 1, jump at 40 hold 3, teleport at 90,
   6 passing asserts incl. one `during` any and one metric), `scenarios/mover.json` (600 ticks, 2 asserts),
   `scenarios/clean/{jump,mover}.json` (copies), `scenarios/sweep.json` (`vars {"k":0}`, jump at `"40+$k"`),
@@ -415,35 +449,27 @@ Fixture hook lines (exact text in `scripts/player.gd`, one each): `	pass # HOOK-
 4. `--twice` + diagnosis -> AC-05.4; FAULT-A5-01/02/08/11.
 5. Golden record/compare -> AC-05.16-18. 6. Multi/dir + perf -> AC-05.23, 24. 7. Selftest -> AC-05.28.
 
-## 8. Out of scope, open questions, assumptions
-Out of scope (v0): recording human play into a scenario (`h run --capture`, Dreams-style input log; v0.1);
-rewind/scrubber and rollback; live MCP stepping (D3); cross-machine golden equality (only drift WARN); 3D-specific
-state helpers; parallel A/B runs (sequential to avoid shared `.godot/` writes [U]).
-Open [U]:
-1. RigidBody node transforms may lag the physics server by one tick at the `_process` sample point (deterministic).
-2. `parse_input_event` + flush was verified headless only, not under Xvfb (A6 `h shot <scenario>`).
-3. Per-tick hashing cost for large states (100+ entities); `hash_every` is the escape hatch.
-4. A scene that changes scenes itself (`change_scene_to_file`) keeps running; entities re-register; untested.
-5. FAULT-A5-11 relies on time-seeded default RNG instances differing across processes (3/3 in S5).
-Deviations from 00_contract (for the reviewer):
-- D-a: unit tests may import `harness.scenario` (pure functions: `load`, `eval_asserts`, `compare_golden`,
-  `resolve`), in addition to `logscan`/`out`. Reason: assert/tolerance semantics need many cases (AC-05.7).
-- D-b: the plan's A5 block says the `Harness` autoload "drives ticks"; per contract §2.8.5 the `-s` runner drives
-  and the autoload is a dormant registry/event/metric API. Plan field names changed: `physics_ticks` -> `tick_rate`,
-  asserts `frame|expr` -> `tick|at_end|during` + `path|metric`.
+## 8. Out of scope, open questions, deviations, assumptions
+Out of scope (v0): `h run --capture` (v0.1); rewind/rollback; live MCP stepping (D3); cross-machine golden equality;
+3D state helpers; parallel A/B runs. Open [U]: (1) RigidBody transforms may lag the physics server by one tick at the `_process` sample point
+(deterministic). (2) Closed (N15): injection under Xvfb works like headless [Run A6 K9]. (3) Hashing cost for 100+
+entities (`hash_every` is the escape hatch). (4) Scenes that call `change_scene_to_file` keep running; untested.
+(5) FAULT-A5-11 relies on time-seeded RNG instances differing across processes (3/3 in S5).
+Deviations from 00_contract (all accepted by REVIEW):
+- D-a **accepted (R-01)**: unit tests import `harness.scenario` (`load`, `resolve`, `eval_asserts`,
+  `compare_golden`; §2.7). `replay.py` is separate so `scenario.py` stays pure (R-19).
+- D-b **accepted (R-48)**: the `-s` runner drives ticks (contract §2.8.5); `Harness` is a dormant registry. Plan
+  renames: `physics_ticks` -> `tick_rate`, asserts `frame|expr` -> `tick|at_end|during` + `path|metric`.
+- R-18 accepted: `tick_completed(0)` (§2.3, §3.2 step 2). R-20: `handle` replaces, `unhandle` added (§2.3,
+  AC-05.26). R-15: A5 owns `scenario.gd` incl. `--shot-at` (§3.1, §3.2 step 6). R-34: runner not-synced -> rc 1
+  (§2.1, §3.2 step 1). R-19: `replay.run_scenario` (§2.7, §3.3).
 Assumptions on other areas:
-- A1: provides `harness.sync.ensure_synced(run, project) -> str` (copies `addons/harness/` into the project when
-  project.godot declares a harness autoload and the files are missing or older; returns `fresh` or `ran (<why>)`)
-  and `h sync` adds the three autoloads. If A1 declines, B5 implements it inside `run.py` with the same output.
-- A3: lint bans global RNG / idle-mode Tween/Timer/AnimationPlayer / `Time.get_ticks_*` statically; `Rng` is the
-  sanctioned API (`rng.gd` exempt).
-- A6/A7: reuse `runners/scenario.gd` by passing extra user args they own (`--shot-at=`, `--trace=`), sampling on
-  `Harness.tick_completed`; they call `scenario.load()` and a `run.py` helper `run_scenario(run, project, scenario,
-  fps, global_seed, extra_user_args, display) -> RunResult` (paths of the artifacts). A6 runs it with
-  `display="xvfb"`. A7's sweeps use `vars` + `--var`.
-- A8: skill `godot-scenario` documents the schema and "no feature claim without a passing scenario"; may hook
-  `h run --record --force`.
-- A9: sim worlds register as one entity (`Harness.register("world", world)`; `_harness_state()` = `to_dict()`),
-  commands go through `CommandBus.handle(type, func(cmd) -> Array)`, events are Dictionaries with `type` (or objects
-  with `to_dict()`), RNG only via `Rng.stream(name)`; the sample's scenarios use this schema.
+- A1 (R-33): `harness.sync.ensure_synced(run, project) -> str` (`fresh` | `ran (<why>)`); `h sync` adds the
+  autoloads (4 incl. Trace, R-16; A5 requires 3).
+- A3: lint bans global RNG / idle Tween/Timer/AnimationPlayer / `Time.get_ticks_*`; `Rng` is sanctioned (exempt).
+- A6/A7 (R-15, R-19): call `scenario.load()` + `replay.run_scenario()`; A6 ships `_capture.gd` (`start(plan,
+  harness)`, `pending()`), A7's Trace autoload reads `--trace=`; both sample on `Harness.tick_completed`.
+- A8: skill `godot-scenario` documents the schema and "no feature claim without a passing scenario".
+- A9: sim worlds register as one entity (`_harness_state()` = `to_dict()`); commands via `CommandBus.handle`;
+  SimHost calls `CommandBus.unhandle` on `tree_exiting` (R-20); RNG only via `Rng.stream(name)`.
 - Plan defaults D1 (GDScript only), D2 (2D platformer + grid tactics), B7 (hash then tolerance, drift = WARN).

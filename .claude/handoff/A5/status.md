@@ -1,19 +1,19 @@
-area: A5 scenario      phase: plan      state: done
+area: A5 scenario      phase: plan      state: done (v2, REVIEW B16 + N07/N15/N17 applied)
 spec: .claude/plans/specs/05_scenario.md @ uncommitted
 tests: 0 total (spec only; 28 ACs, 12 faults (10 must, 2 nice) + 2 clean entries for T5)      lock: n/a
-updated: 2026-10-15 by planner (claude-opus-5-5)
+updated: 2026-10-15 by planner re-run (claude-opus-5-5)
 done:
-- 05_scenario.md (449 lines): `h run` CLI + output, scenario JSON Schema (vars/sweeps, bind, inputs, commands,
-  dumps, asserts), Harness/Rng/CommandBus GDScript APIs, artifacts + hashing, golden format/compare (B7),
-  `--twice` with perturbation (fps 2x + global RNG reseed) and cause diagnosis, runner algorithm, faults, fixtures
-- 6 spikes [Run] in scratchpad a5/: autoloads under -s; inject inputs from MainLoop _process (from _physics_process
-  just_pressed is off by one); CharacterBody2D 3x identical hashes; 600 ticks 0.37 s; randf/idle-tween/_process-delta/
-  unseeded-RNG faults all detected by the A/B perturbation (idle tween only via per-tick hashes)
+- v1: `h run` CLI + output, scenario schema, Harness/Rng/CommandBus APIs, artifacts + hashing, goldens, `--twice`
+  diagnosis, runner algorithm, faults, fixtures; 6 spikes [Run] in scratchpad a5/
+- v2 (REVIEW B16): R-18 `tick_completed(0)` (§2.3, §3.2 step 2; fixture metric `tick_signals == 121` in AC-05.2);
+  R-19 new `replay.py` `run_scenario(...)` + public `scenario.py` API (§2.7, §3.1, §3.3); R-20 `handle` replaces,
+  `unhandle` added (§2.3, AC-05.26 = N07); R-15 A5 owns `scenario.gd` incl. `--shot-at` block (§3.1, §3.2 step 6);
+  R-34 runner not-synced -> error + `done` rc 1 (§2.1, §3.2 step 1); N15 open Q2 closed by A6 K9; N17 §8
+  deviations marked with R-ids (D-a R-01, D-b R-48)
 next:
-- spec reviewer: check deviations D-a (unit tests import harness.scenario) and D-b (runner drives ticks, not the
-  Harness autoload) and the A1 assumption `sync.ensure_synced`
-- T5 writes tests/fixtures scenario_min + scenario_noautoload, ACs 05.1-05.28, FAULT-A5-01..12, CLEAN-A5-01..02
-- A6/A7/A9 planners: use `run_scenario()` helper, `Harness.tick_completed`, entity/command conventions (§8)
+- T5 writes fixtures scenario_min (+ level.gd `tick_signals` metric) + scenario_noautoload, ACs 05.1-05.28,
+  FAULT-A5-01..12, CLEAN-A5-01..02
+- B5 builds replay.py and the `--shot-at` block; A6 AC-06.25 verifies the latter after B6
 blockers:
 - none
 disputes: 0 open
