@@ -1,0 +1,12 @@
+id = "FAULT-A1-13"
+area = "A1"
+title = "null call in _ready found by --smoke"
+fixture = "scene_cases"
+severity = "must"
+source = "01_core_cli.md section 5"
+apply = [
+  {op = "write", path = "scripts/null_ready.gd", from = "files/null_ready.gd"},
+  {op = "write", path = "scenes/null_ready.tscn", from = "files/null_ready.tscn"},
+]
+run = {verb = "check", args = ["--smoke"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['^res://scripts/null_ready\.gd:4: \[godot\.script-error\]'], not_regex = [], max_seconds = 60}

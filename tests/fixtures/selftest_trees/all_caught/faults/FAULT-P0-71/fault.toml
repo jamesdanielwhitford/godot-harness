@@ -1,0 +1,9 @@
+id = "FAULT-P0-71"
+area = "P0"
+title = "doctor usage error"
+fixture = "none"
+severity = "must"
+source = "00_contract.md AC-00.22"
+apply = []
+run = {verb = "doctor", args = ["--no-such-flag"], env = {}, no_project = true}
+expect = {rc = 2, verdict = "ERROR", regex = ['^ERROR doctor usage: '], not_regex = [], max_seconds = 30}

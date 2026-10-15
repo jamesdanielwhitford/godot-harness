@@ -1,0 +1,12 @@
+id = "FAULT-A1-06"
+area = "A1"
+title = "preload of a broken script reports both files"
+fixture = "clean_min"
+severity = "must"
+source = "01_core_cli.md section 5"
+apply = [
+  {op = "write", path = "scripts/bad_parse.gd", from = "files/bad_parse.gd"},
+  {op = "write", path = "scripts/uses_bad.gd", from = "files/uses_bad.gd"},
+]
+run = {verb = "check", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['bad_parse\.gd:3: \[godot\.parse-error\]', 'uses_bad\.gd:2: \[godot\.parse-error\]'], not_regex = [], max_seconds = 60}

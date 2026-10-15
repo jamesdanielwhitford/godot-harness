@@ -1,0 +1,7 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/hero.gd" id="1_a"]
+
+[sub_resource type="CircleShape2D" id="C_1"]
+
+[node name="Root" type="Node2D"]

@@ -1,0 +1,9 @@
+id = "CLEAN-A1-04"
+area = "A1"
+title = "h api resolves a property"
+fixture = "none"
+severity = "must"
+source = "01_core_cli.md section 5"
+apply = []
+run = {verb = "api", args = ["Node2D.position"], env = {}, no_project = true}
+expect = {rc = 0, verdict = "PASS", regex = ['^sig: var position: Vector2$'], not_regex = [], max_seconds = 30}

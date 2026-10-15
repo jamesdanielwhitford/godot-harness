@@ -1,0 +1,9 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/hero.gd" id="1_a"]
+
+[node name="Root" type="Node2D"]
+script = ExtResource("1_a")
+target = NodePath("Child")
+
+[node name="Child" type="Node2D" parent="."]

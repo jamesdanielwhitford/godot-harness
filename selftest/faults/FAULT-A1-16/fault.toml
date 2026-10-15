@@ -1,0 +1,12 @@
+id = "FAULT-A1-16"
+area = "A1"
+title = "autoload with a runtime error in _ready"
+fixture = "scene_cases"
+severity = "must"
+source = "01_core_cli.md section 5"
+apply = [
+  {op = "write", path = "scripts/bad_auto.gd", from = "files/bad_auto.gd"},
+  {op = "write", path = "project.godot", text = "; Engine configuration file.\nconfig_version=5\n\n[application]\n\nconfig/name=\"scene_cases\"\nconfig/features=PackedStringArray(\"4.7\")\n\n[autoload]\n\nBadAuto=\"*res://scripts/bad_auto.gd\"\n"},
+]
+run = {verb = "check", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['^res://scripts/bad_auto\.gd:3: \[godot\.script-error\]'], not_regex = [], max_seconds = 60}

@@ -1,0 +1,11 @@
+id = "FAULT-A1-07"
+area = "A1"
+title = "r1_4 c10 bad parent path"
+fixture = "scene_cases"
+severity = "must"
+source = "01_core_cli.md section 5"
+apply = [
+  {op = "write", path = "cases/c10_bad_parent.tscn", from = "files/c10_bad_parent.tscn"},
+]
+run = {verb = "check", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['^res://cases/c10_bad_parent\.tscn: \[godot\.parent-vanished\]'], not_regex = [], max_seconds = 60}

@@ -1,0 +1,10 @@
+# Pinned external dependencies. Read by tools/bootstrap.sh and `h doctor`.
+godot_version = "4.7-stable"
+godot_version_string = "4.7.stable.official.5b4e0cb0f"
+godot_url = "https://github.com/godotengine/godot-builds/releases/download/4.7-stable/Godot_v4.7-stable_linux.x86_64.zip"
+godot_sha256 = "0b1a6c54c2c619c12e169fe9241edda4b81080b519451cec2984bf0d2c6cb73c"
+gdunit4_tag = "v6.2.2"
+gdunit4_commit = "0127a55f4543dfc24746f6e5c7ba6f94105d51f2"
+gdunit4_urls = ["https://github.com/godot-gdunit-labs/gdUnit4.git", "https://github.com/MikeSchulze/gdUnit4.git"]
+odiff = "4.5.0"
+gdtoolkit = "4.5.0"

@@ -1,0 +1,9 @@
+id = "CLEAN-P0-94"
+area = "P0"
+title = "clean entry that does not pass"
+fixture = "none"
+severity = "must"
+source = "00_contract.md AC-00.22"
+apply = []
+run = {verb = "doctor", args = ["--no-such-flag"], env = {}, no_project = true}
+expect = {rc = 0, verdict = "PASS", regex = [], not_regex = [], max_seconds = 30}

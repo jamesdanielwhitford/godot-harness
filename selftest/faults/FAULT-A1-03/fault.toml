@@ -1,0 +1,11 @@
+id = "FAULT-A1-03"
+area = "A1"
+title = "Godot-3/hallucinated idiom c11_variant_infer is a parse error"
+fixture = "clean_min"
+severity = "must"
+source = "01_core_cli.md section 5"
+apply = [
+  {op = "write", path = "scripts/c11_variant_infer.gd", from = "files/c11_variant_infer.gd"},
+]
+run = {verb = "check", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['c11_variant_infer\.gd:4: \[godot\.parse-error\]'], not_regex = [], max_seconds = 60}

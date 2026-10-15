@@ -1,0 +1,13 @@
+id = "FAULT-A1-17"
+area = "A1"
+title = "autoload quits rc 0 while a script is broken (harness.rc warning)"
+fixture = "clean_min"
+severity = "nice"
+source = "01_core_cli.md section 5"
+apply = [
+  {op = "write", path = "scripts/quit0.gd", from = "files/quit0.gd"},
+  {op = "write", path = "scripts/bad_parse.gd", from = "files/bad_parse.gd"},
+  {op = "replace", path = "project.godot", old = "[rendering]\n", new = "[autoload]\n\nQuit0=\"*res://scripts/quit0.gd\"\n\n[rendering]\n"},
+]
+run = {verb = "check", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[harness\.rc\] warning', 'bad_parse\.gd:3:'], not_regex = [], max_seconds = 60}

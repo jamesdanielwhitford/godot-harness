@@ -1,0 +1,11 @@
+id = "FAULT-A1-20"
+area = "A1"
+title = "h import reports a scene saved with a newer format"
+fixture = "scene_cases"
+severity = "must"
+source = "01_core_cli.md section 5"
+apply = [
+  {op = "write", path = "cases/c19_future_format.tscn", from = "files/c19_future_format.tscn"},
+]
+run = {verb = "import", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['^res://cases/c19_future_format\.tscn:1: \[godot\.error\]'], not_regex = [], max_seconds = 60}

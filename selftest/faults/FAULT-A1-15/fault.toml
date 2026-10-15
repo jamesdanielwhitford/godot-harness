@@ -1,0 +1,12 @@
+id = "FAULT-A1-15"
+area = "A1"
+title = "emit_signal of a missing signal found by --smoke (c18 snippet)"
+fixture = "scene_cases"
+severity = "must"
+source = "01_core_cli.md section 5"
+apply = [
+  {op = "write", path = "scripts/c18_emit_str.gd", from = "files/c18_emit_str.gd"},
+  {op = "write", path = "scenes/c18.tscn", from = "files/c18.tscn"},
+]
+run = {verb = "check", args = ["--smoke"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['^res://scripts/c18_emit_str\.gd:4: \[godot\.error\]'], not_regex = [], max_seconds = 60}

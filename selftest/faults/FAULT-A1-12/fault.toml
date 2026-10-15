@@ -1,0 +1,11 @@
+id = "FAULT-A1-12"
+area = "A1"
+title = "r1_4 c23 instanced scene missing"
+fixture = "scene_cases"
+severity = "must"
+source = "01_core_cli.md section 5"
+apply = [
+  {op = "write", path = "cases/c23_instance_missing.tscn", from = "files/c23_instance_missing.tscn"},
+]
+run = {verb = "check", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['gone\.tscn'], not_regex = [], max_seconds = 60}

@@ -1,0 +1,11 @@
+id = "FAULT-P0-93"
+area = "P0"
+title = "replace that matches 0 times"
+fixture = "clean_min"
+severity = "must"
+source = "00_contract.md AC-00.22"
+apply = [
+  {op = "replace", path = "project.godot", old = "NOT_IN_THE_FILE_XYZ", new = "x"},
+]
+run = {verb = "doctor", args = [], env = {}, no_project = true}
+expect = {rc = 0, verdict = "PASS", regex = [], not_regex = [], max_seconds = 30}

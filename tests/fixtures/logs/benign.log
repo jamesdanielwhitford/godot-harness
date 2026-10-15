@@ -1,0 +1,6 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+@@H {"t":"data","ev":"begin","path":"res://a.gd"}
+ERROR: remote port number must be between 1 and 65535
+@@H {"t":"finding","path":"res://a.gd","line":1,"rule":"x.y","severity":"error","message":"ERROR: not a log line"}
+@@H {"t":"done","rc":0}

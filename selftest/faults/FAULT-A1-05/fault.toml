@@ -1,0 +1,11 @@
+id = "FAULT-A1-05"
+area = "A1"
+title = "Godot-3/hallucinated idiom c27_hallucinated is a parse error"
+fixture = "clean_min"
+severity = "must"
+source = "01_core_cli.md section 5"
+apply = [
+  {op = "write", path = "scripts/c27_hallucinated.gd", from = "files/c27_hallucinated.gd"},
+]
+run = {verb = "check", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['c27_hallucinated\.gd:3: \[godot\.parse-error\]'], not_regex = [], max_seconds = 60}

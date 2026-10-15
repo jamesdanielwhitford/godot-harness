@@ -1,0 +1,5 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+SCRIPT ERROR: Parse Error: Expected expression after "+" operator.
+          at: GDScript::reload (res://bad.gd:3)
+ERROR: Failed to load script "res://bad.gd" with error "Parse error".

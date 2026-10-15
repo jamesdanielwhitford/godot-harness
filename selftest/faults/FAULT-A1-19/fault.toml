@@ -1,0 +1,9 @@
+id = "FAULT-A1-19"
+area = "A1"
+title = "h api --exists: hallucinated method does not exist"
+fixture = "none"
+severity = "must"
+source = "01_core_cli.md section 5"
+apply = []
+run = {verb = "api", args = ["--exists", "Vector2.length_squared_fast"], env = {}, no_project = true}
+expect = {rc = 1, verdict = "FAIL", regex = ['^FAIL api'], not_regex = [], max_seconds = 30}

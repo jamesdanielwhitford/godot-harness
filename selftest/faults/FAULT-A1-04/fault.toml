@@ -1,0 +1,11 @@
+id = "FAULT-A1-04"
+area = "A1"
+title = "Godot-3/hallucinated idiom c28_tabspace is a parse error"
+fixture = "clean_min"
+severity = "must"
+source = "01_core_cli.md section 5"
+apply = [
+  {op = "write", path = "scripts/c28_tabspace.gd", from = "files/c28_tabspace.gd"},
+]
+run = {verb = "check", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['c28_tabspace\.gd:4: \[godot\.parse-error\]'], not_regex = [], max_seconds = 60}

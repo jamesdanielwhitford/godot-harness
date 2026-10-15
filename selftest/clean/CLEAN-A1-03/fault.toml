@@ -1,0 +1,15 @@
+id = "CLEAN-A1-03"
+area = "A1"
+title = "silent r1_4 scene cases give rc 0 from the load-check"
+fixture = "scene_cases"
+severity = "must"
+source = "01_core_cli.md section 5"
+apply = [
+  {op = "write", path = "cases/c00_valid.tscn", from = "files/c00_valid.tscn"},
+  {op = "write", path = "cases/c21_stale_load_steps.tscn", from = "files/c21_stale_load_steps.tscn"},
+  {op = "write", path = "cases/c24_typed_arrays.tscn", from = "files/c24_typed_arrays.tscn"},
+  {op = "write", path = "cases/c25_bad_nodepath_export.tscn", from = "files/c25_bad_nodepath_export.tscn"},
+  {op = "write", path = "cases/c27_sub_unused_and_ext_unused.tscn", from = "files/c27_sub_unused_and_ext_unused.tscn"},
+]
+run = {verb = "check", args = ["--no-lint"], env = {}, no_project = false}
+expect = {rc = 0, verdict = "PASS", regex = [], not_regex = [], max_seconds = 60}

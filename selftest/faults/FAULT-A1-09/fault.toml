@@ -1,0 +1,11 @@
+id = "FAULT-A1-09"
+area = "A1"
+title = "r1_4 c16 scene syntax error"
+fixture = "scene_cases"
+severity = "must"
+source = "01_core_cli.md section 5"
+apply = [
+  {op = "write", path = "cases/c16_syntax_error.tscn", from = "files/c16_syntax_error.tscn"},
+]
+run = {verb = "check", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['^res://cases/c16_syntax_error\.tscn:\d+: \[check\.load-failed\]'], not_regex = [], max_seconds = 60}

@@ -1,0 +1,9 @@
+id = "CLEAN-P0-72"
+area = "P0"
+title = "doctor passes"
+fixture = "none"
+severity = "must"
+source = "00_contract.md AC-00.22"
+apply = []
+run = {verb = "doctor", args = [], env = {}, no_project = true}
+expect = {rc = 0, verdict = "PASS", regex = ['^PASS doctor'], not_regex = [], max_seconds = 30}

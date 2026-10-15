@@ -1,0 +1,13 @@
+id = "FAULT-A1-14"
+area = "A1"
+title = "script static initialiser hangs; later broken script still reported (resume)"
+fixture = "clean_min"
+severity = "must"
+source = "01_core_cli.md section 5"
+apply = [
+  {op = "write", path = "scripts/a_hang.gd", from = "files/a_hang.gd"},
+  {op = "write", path = "scripts/z_broken.gd", from = "files/z_broken.gd"},
+  {op = "write", path = "harness.toml", text = "[timeouts]\nrunner = 5\n"},
+]
+run = {verb = "check", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['^res://scripts/a_hang\.gd: \[harness\.hang\]', '^res://scripts/z_broken\.gd:3:'], not_regex = [], max_seconds = 40}

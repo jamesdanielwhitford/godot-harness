@@ -1,0 +1,9 @@
+id = "FAULT-P0-92"
+area = "P0"
+title = "unmeetable nice fault"
+fixture = "none"
+severity = "nice"
+source = "00_contract.md AC-00.22"
+apply = []
+run = {verb = "doctor", args = [], env = {}, no_project = true}
+expect = {rc = 1, verdict = "FAIL", regex = ['NEVER_PRINTED_BY_ANY_VERB_7f3a'], not_regex = [], max_seconds = 30}

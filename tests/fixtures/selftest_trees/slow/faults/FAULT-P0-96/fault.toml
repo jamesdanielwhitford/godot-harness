@@ -1,0 +1,9 @@
+id = "FAULT-P0-96"
+area = "P0"
+title = "caught in content but slower than max_seconds"
+fixture = "none"
+severity = "must"
+source = "00_contract.md AC-00.22"
+apply = []
+run = {verb = "doctor", args = [], env = {}, no_project = true}
+expect = {rc = 0, verdict = "PASS", regex = ['^PASS doctor'], not_regex = [], max_seconds = 0.001}

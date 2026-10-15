@@ -1,0 +1,10 @@
+[gd_scene format=3]
+
+[node name="Root" type="Node2D"]
+metadata/a = Array[int]([1, 2, 3])
+metadata/d = Dictionary[String, int]({
+"x": 1
+})
+metadata/p = PackedVector2Array(0, 0, 1, 1)
+metadata/np = NodePath("../Foo:bar")
+metadata/sn = &"stringname"

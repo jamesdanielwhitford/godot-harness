@@ -1,0 +1,12 @@
+id = "FAULT-P0-81"
+area = "P0"
+title = "doctor passes; fixture copy is modified"
+fixture = "clean_min"
+severity = "must"
+source = "00_contract.md AC-00.22"
+apply = [
+  {op = "write", path = "extra.txt", text = "modified in the temp copy only\n"},
+  {op = "delete", path = "scripts/hello.gd"},
+]
+run = {verb = "doctor", args = [], env = {}, no_project = true}
+expect = {rc = 0, verdict = "PASS", regex = ['^PASS doctor'], not_regex = [], max_seconds = 30}

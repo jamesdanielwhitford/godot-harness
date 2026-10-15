@@ -1,0 +1,16 @@
+id = "CLEAN-A1-01"
+area = "A1"
+title = "r1_5 clean/silent snippets as scripts and scenes pass load-check and smoke"
+fixture = "clean_min"
+severity = "must"
+source = "01_core_cli.md section 5"
+apply = [
+  {op = "write", path = "scripts/c20_ok_baseline.gd", from = "files/c20_ok_baseline.gd"},
+  {op = "write", path = "scenes/c20_ok_baseline.tscn", from = "files/c20_ok_baseline.tscn"},
+  {op = "write", path = "scripts/c21_lambda_capture.gd", from = "files/c21_lambda_capture.gd"},
+  {op = "write", path = "scenes/c21_lambda_capture.tscn", from = "files/c21_lambda_capture.tscn"},
+  {op = "write", path = "scripts/c29_int_div.gd", from = "files/c29_int_div.gd"},
+  {op = "write", path = "scenes/c29_int_div.tscn", from = "files/c29_int_div.tscn"},
+]
+run = {verb = "check", args = ["--smoke", "--no-lint"], env = {}, no_project = false}
+expect = {rc = 0, verdict = "PASS", regex = [], not_regex = ['\[godot\.'], max_seconds = 60}

@@ -1,0 +1,13 @@
+id = "CLEAN-A1-02"
+area = "A1"
+title = "new class_name triggers a content-based re-import and the check passes"
+fixture = "clean_min"
+severity = "must"
+source = "01_core_cli.md section 5"
+apply = [
+  {op = "write", path = ".godot/global_script_class_cache.cfg", text = "list=[]\n"},
+  {op = "write", path = "scripts/late.gd", from = "files/late.gd"},
+  {op = "write", path = "scripts/uses_late.gd", from = "files/uses_late.gd"},
+]
+run = {verb = "check", args = [], env = {}, no_project = false}
+expect = {rc = 0, verdict = "PASS", regex = ['^import: ran \(stale class cache'], not_regex = [], max_seconds = 60}

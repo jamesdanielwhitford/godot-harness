@@ -1,0 +1,9 @@
+id = "FAULT-P0-95"
+area = "P0"
+title = "expect.rc missing"
+fixture = "none"
+severity = "must"
+source = "t"
+apply = []
+run = {verb = "doctor", args = [], env = {}, no_project = true}
+expect = {verdict = "PASS", regex = ['^PASS doctor'], not_regex = [], max_seconds = 30}

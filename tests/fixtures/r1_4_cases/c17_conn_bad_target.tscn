@@ -1,0 +1,8 @@
+[gd_scene format=3]
+
+[node name="Root" type="Node2D"]
+
+[node name="A" type="Timer" parent="."]
+
+[connection signal="timeout" from="A" to="Ghost" method="_x"]
+[connection signal="nosuchsig" from="A" to="." method="_y"]

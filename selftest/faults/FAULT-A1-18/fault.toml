@@ -1,0 +1,9 @@
+id = "FAULT-A1-18"
+area = "A1"
+title = "h api: Godot 3 class name suggests the Godot 4 name"
+fixture = "none"
+severity = "must"
+source = "01_core_cli.md section 5"
+apply = []
+run = {verb = "api", args = ["KinematicBody2D"], env = {}, no_project = true}
+expect = {rc = 1, verdict = "FAIL", regex = ['not in Godot 4\.7', 'CharacterBody2D'], not_regex = [], max_seconds = 30}

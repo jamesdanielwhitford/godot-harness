@@ -1,0 +1,11 @@
+id = "FAULT-A1-08"
+area = "A1"
+title = "r1_4 c03 missing external resource path"
+fixture = "scene_cases"
+severity = "must"
+source = "01_core_cli.md section 5"
+apply = [
+  {op = "write", path = "cases/c03_missing_ext_path.tscn", from = "files/c03_missing_ext_path.tscn"},
+]
+run = {verb = "check", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['^res://cases/c03_missing_ext_path\.tscn(:\d+)?: \[godot\.', 'missing\.png'], not_regex = [], max_seconds = 60}

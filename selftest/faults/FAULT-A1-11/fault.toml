@@ -1,0 +1,11 @@
+id = "FAULT-A1-11"
+area = "A1"
+title = "r1_4 c18 script path missing"
+fixture = "scene_cases"
+severity = "must"
+source = "01_core_cli.md section 5"
+apply = [
+  {op = "write", path = "cases/c18_missing_script_path.tscn", from = "files/c18_missing_script_path.tscn"},
+]
+run = {verb = "check", args = [], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['ghost\.gd', '\[godot\.(load-failed|error)\]'], not_regex = [], max_seconds = 60}

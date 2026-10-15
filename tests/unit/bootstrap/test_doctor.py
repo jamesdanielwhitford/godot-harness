@@ -13,7 +13,7 @@ def run_h(*args, env=None):
 
 def test_doctor_fails_when_cache_missing(tmp_path):
     r = run_h("doctor", env={"HARNESS_CACHE": str(tmp_path)})
-    assert r.returncode != 0
+    assert r.returncode == 4, r.stdout  # C4: missing required tool -> rc 4 (environment)
     assert "FAIL gdunit4" in r.stdout and "FAIL odiff" in r.stdout
 
 
@@ -26,7 +26,7 @@ def test_doctor_reports_every_check(tmp_path):
 def test_doctor_passes_after_bootstrap():
     r = run_h("doctor")
     assert r.returncode == 0, r.stdout
-    assert "doctor: ok" in r.stdout
+    assert r.stdout.splitlines()[0].startswith("PASS doctor"), r.stdout  # C4: verdict line first
 
 
 def test_unknown_verb():

@@ -1,0 +1,11 @@
+[gd_scene format=3]
+
+[sub_resource type="Gradient" id="G_1"]
+
+[sub_resource type="GradientTexture1D" id="GT_1"]
+gradient = SubResource("G_2")
+
+[sub_resource type="Gradient" id="G_2"]
+
+[node name="Root" type="Sprite2D"]
+texture = SubResource("GT_1")

@@ -1,0 +1,6 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+ERROR: boom
+   at: crash (core/os/os.cpp:100)
+handle_crash: Program crashed with signal 6
+Aborted
