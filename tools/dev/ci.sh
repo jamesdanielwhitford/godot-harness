@@ -65,11 +65,7 @@ h="$ROOT/tools/harness/h"
 if [ $quick -eq 1 ]; then
   record gd_host SKIPPED "--quick"; record e2e SKIPPED "--quick"; record selftest SKIPPED "--quick"
 else
-  if [ -x "$h" ] && [ -d tests/fixtures/projects/gd_host ] && [ -f tools/harness/harness/verbs/test.py ]; then
-    gd_tmp="${HARNESS_TMP:-$ROOT/.harness/tmp}/gd_host_$ts"; rm -rf "$gd_tmp"; mkdir -p "$gd_tmp"
-    cp -a tests/fixtures/projects/gd_host/. "$gd_tmp/"
-    run_layer gd_host "$h" test --project "$gd_tmp"
-  else record gd_host SKIPPED "h test or gd_host fixture missing"; fi
+  if [ -d tests/gd ]; then pytest_layer gd_host tests/gd; else record gd_host SKIPPED "tests/gd missing"; fi
   pytest_layer e2e tests/e2e
   if [ -x "$h" ] && [ -f tools/harness/harness/verbs/selftest.py ]; then
     run_layer selftest "$h" selftest

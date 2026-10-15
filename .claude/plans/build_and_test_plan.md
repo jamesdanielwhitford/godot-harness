@@ -12,7 +12,7 @@ Tags: **[U]** unverified or a judgement call; **[DEFAULT]** a proposed answer to
 
 | Phase | Item | Status | Commit / date | Notes |
 |---|---|---|---|---|
-| 0 | Dev roles (`.claude/agents/*.md`), handoff dirs, pathguard, test-lock scripts | done | 048ad74, b7a1059, 91245e4 / 2026-10-15 | custom agent types did not resolve in session 001 (S3; the agents dir was created mid-session and is not watched). Re-test in a fresh session; until then spawn `general-purpose` with `model:` and paste the role text |
+| 0 | Dev roles (`.claude/agents/*.md`), handoff dirs, pathguard, test-lock scripts | done | 048ad74, b7a1059, 91245e4 / 2026-10-15 | custom agent types did not resolve in session 001; **session 002: `subagent_type: "verifier"` resolves (replied with model claude-sonnet-5-5)**, so spawn planner/test-writer/builder/verifier by type |
 | 0 | `tools/bootstrap.sh` + `h doctor` stub | done | 771a0ca / 2026-10-15 | fresh-clone G0 check passed (ci PASS, rest SKIPPED). --doctool gap root-caused by A1 (h api --rebuild) |
 | 0 | Spikes S1–S6 | done | d2ce008 / 2026-10-15 | see research/r2_spikes.md. Nested `claude -p` works; S6: branches can be pushed but not deleted, so stay on `main` |
 | 0 | User decisions D1–D5 confirmed or defaults accepted | defaults | 2026-10-15 | user said work autonomously; defaults in force |
@@ -78,7 +78,7 @@ Area status lives in `.claude/handoff/<area>/status.md` (see §5.4). Only the or
 | S2 | Parse-error exit codes: R1.1 saw rc=1 for `-s --check-only`, R1.5 saw rc=0 in its runner. Reproduce both cases. | A1 `check` semantics | Treat the log scan as authoritative; use the exit code only as an extra failure signal. |
 | S3 | Can the Agent tool in this environment pick the model (opus/sonnet) per spawn, and do `.claude/agents/*.md` `model:`/`tools:` fields apply? Does a nested `claude -p` work inside a subagent? | Roles (§5), Round P trials, Phase 6 dogfood | Put the model in the agent definition files. If nested `claude -p` fails, Round P uses "simulated baseline" (addendum) and the dogfood step is done by the orchestrator. |
 | S4 | gdUnit4 single-test selection on the CLI (R1.3 open question) | A4 `h test <filter>` | Filter at suite level only. |
-| S5 | LSP: do `publishDiagnostics` arrive for a file that was not opened, and how long does a warm daemon take per file? | A3 LSP hook design | LSP stays an opt-in `h check --lsp`. |
+| S5 | LSP: do `publishDiagnostics` arrive for a file that was not opened, and how long does a warm daemon take per file? | A3 LSP hook design | LSP stays opt-in via `h lsp diag` (R-29). |
 | S6 | Does push work to non-default branch names here (`git push origin build/x`)? | §5.3 branch scheme | Single working branch plus pathguard only. |
 
 ### 2.4 Still unverified, carried into the specs as [U]
@@ -149,7 +149,7 @@ docs/ HARNESS.md ADOPTION.md verbs.md
 | `h sync [proj]` | Copies `addons/harness` (+ gdUnit4) into the project; enables autoloads per config | A1 |
 | `h import` | `--import` with timeout, retry once on SIGABRT (R1.4), log scan | A1 |
 | `h api <Class[.member]> / --search` | Lookup in the pinned `extension_api.json` + doctool `@GDScript.xml`; "did you mean"; existence check | A1 |
-| `h check [paths] [--full] [--lsp]` | import-if-stale → `--check-only` per .gd → load+instantiate per .tscn/.tres with Logger capture → lint → optional 2-frame smoke run of scenes; merged verdict | A1 (+A3 lint, +A2 load-check runner) |
+| `h check [paths] [--full]` | import-if-stale → `--check-only` per .gd → load+instantiate per .tscn/.tres with Logger capture → lint → optional 2-frame smoke run of scenes; merged verdict | A1 (+A3 lint, +A2 load-check runner) |
 | `h lint [paths]` | Regex rules (Godot 3 idioms, `tscn-*`, determinism bans such as global `randf`), InputMap action existence, `emit_signal("x")` vs declared signals | A3 |
 | `h digest <scene> [--all-props] / --project` | Tree, types, scripts, unique names, groups, connections, named layers, ext deps | A2 |
 | `h scene-gen <spec.json>` / `h scene-edit <scene> <ops.json>` | Engine-written scenes (GEN_EDIT_STATE_MAIN round-trip), then automatic load-check + digest diff | A2 |
@@ -205,7 +205,7 @@ The A8 wiring adds a Claude Code **SessionStart hook** for this repo and for gam
 | `tools/harness/h doctor` | Environment health | ≤5 s |
 | `.venv/bin/pytest tests/unit -q` | Python units | ≤10 s |
 | `.venv/bin/pytest tests/contract -q [-k area]` | Black-box verb tests | ≤5 min |
-| `tools/harness/h test --project tests/fixtures/projects/gd_host` | gdUnit4 tests of `addons/harness` | ≤1 min |
+| `.venv/bin/pytest tests/gd -q` (wrappers run gdUnit4 on the `gd_host` fixture, owned by T1, R-39) | gdUnit4 tests of `addons/harness` | ≤1 min |
 | `tools/harness/h selftest` | Seeded-fault matrix | ≤10 min |
 | `.venv/bin/pytest tests/e2e -q` | End-to-end flows | ≤5 min |
 | `tools/dev/ci.sh [--quick]` | All of the above in order; writes `.harness/out/ci/<ts>/summary.md` | ≤20 min (quick: units + contract for changed areas) |
@@ -232,7 +232,7 @@ Agent definition files in `.claude/agents/` (`planner.md`, `test-writer.md`, `bu
 ### 5.2 How the separation is enforced in practice
 
 1. **Time order.** For each area, tests are written in a phase where no implementation exists (Phase 2 for core, the start of Phase 5 for the rest). Test-writers cannot shape tests to code that does not exist.
-2. **Black-box surface.** Tests may only use: the `h` CLI, files in `.harness/out/`, fixture projects, the in-engine API **as named in the spec** (e.g. `Rng.seed_all(int)`), and the JSON schemas in the spec. Tests may not import from `tools/harness/harness/` except in `tests/unit/`, and only for the modules the spec names as public (`logscan`, `out`).
+2. **Black-box surface.** Tests may only use: the `h` CLI, files in `.harness/out/`, fixture projects, the in-engine API **as named in the spec** (e.g. `Rng.seed_all(int)`), and the JSON schemas in the spec. Tests may not import from `tools/harness/harness/` except in `tests/unit/`, and only for the closed allowlist in REVIEW R-01 (`logscan`, `out`, `scenes.model`, `gdunit`, `scenario`, `feel`, `wiring`).
 3. **Test lock.** After test-writers finish, the orchestrator runs `tools/dev/lock_tests.sh`, which writes `tests/LOCK.sha256` (hash per file under `tests/` and `selftest/`), and commits it. `check_lock.sh` runs first in `ci.sh` and in every verifier run. Any change by a builder is a hard FAIL.
 4. **Pathguard.** After each agent returns, the orchestrator runs `tools/dev/pathguard.sh <role> <area> <base>..HEAD` (or on the uncommitted diff) before committing. Out-of-allowlist edits are reverted and the agent is re-run with a note.
 5. **Red check.** Before any building, the verifier runs the new tests and confirms they fail for the right reason ("verb not found" / exit 2) and not because of collection errors. A test that passes with no implementation is reported as vacuous and goes back to the test-writer.
@@ -422,7 +422,7 @@ Fault ideas: typo'd property in spec (must fail, no file written), unknown type,
 without [editable], duplicate sibling names, export node ref missing node_paths, hand-edited scene with bad parent= (digest
 must show the vanished node).
 ```
-AC highlights: a generated scene re-loads with zero logged warnings. Round-trip edits of `complex.tscn`/`inh.tscn` keep overrides, groups and connections (digest equal except the expected change). A bad spec gives exit 1 and writes no file. Digest output for the sample player scene is ≤60 lines.
+AC highlights: a generated scene re-loads with zero logged warnings. Round-trip edits of `complex.tscn`/`inh.tscn` keep overrides, groups and connections (digest equal except the expected change). A bad spec gives exit 1 and writes no file. Digest output for the sample player scene is ≤40 lines with a `more:` stat (R-22).
 
 ### A3. Lint, Godot-3 hook, LSP (C3) — planner P3
 
@@ -639,7 +639,7 @@ End:
 | RP.Z1 pack assembly | After the topic agents | v0 harness | Input to planner P10 |
 | RP.Z2 benchmark | Phase 8 | v0.1 | Go/no-go on the pattern pack |
 
-Throttle the topic agents by the RP.1 ranking (addendum P4). With the D2 default, run full depth for RP.A, RP.D, RP.E, RP.F, RP.C. Run reduced depth (no agent trials) for RP.G, RP.I, RP.J, RP.K, RP.H. Skip RP.B (3D) until 3D is chosen.
+Throttle per RP.1 (supersedes the earlier D2 list): **full** depth for RP.A, RP.B (3D, deferred until 3D is chosen), RP.D, RP.E, RP.F, RP.I; **reduced** depth (no agent trials) for RP.C, RP.G (keep P15 lint + remap check), RP.H (spend on P17 navigation), RP.J, RP.K (spend on P23).
 
 ### 9.2 Required amendments to the addendum prompts (apply when pasting them)
 1. **Paths:** the scratchpad does not persist. Write reports to `.claude/research/rp_*.md` and small code to `.claude/research/scripts/rp_<id>/`. Large clones stay in the scratchpad and get re-cloned by pinned commit.
