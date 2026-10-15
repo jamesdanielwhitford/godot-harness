@@ -1,0 +1,1 @@
+Build a HUD (health bar, score, ammo counter, minimap placeholder in a corner, pause button) for a 2D game that works correctly at both 1280x720 and 2560x1080 window sizes (anchored to the screen edges, nothing overlapping or off-screen). Create a scene with the HUD on a CanvasLayer plus a simple game scene using it, and set project stretch settings appropriately.

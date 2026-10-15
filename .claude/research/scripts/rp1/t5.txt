@@ -1,0 +1,1 @@
+Build a 2D top-down scene with a player (WASD movement) and an enemy that patrols between waypoints, and chases the player when it sees him (line of sight: within a view range and not blocked by walls), then returns to patrolling when it loses him. The scene must contain walls (StaticBody2D / collision) that block sight.

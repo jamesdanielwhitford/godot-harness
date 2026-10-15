@@ -1,0 +1,1 @@
+Build an inventory system for a game: item definitions, stackable items with a max stack size, a grid inventory UI of 20 slots, and drag-and-drop to move/swap/merge stacks between slots. Include at least 4 sample item types (2 stackable, 2 not) and a demo scene (main scene) with a way to add items.
