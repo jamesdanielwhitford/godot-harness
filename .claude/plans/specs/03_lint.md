@@ -1,7 +1,7 @@
 # 03 Lint, Godot-3 hook, LSP (A3, planner P3)
 
-Status: spec v1, 2026-10-15, Opus planner P3. Conforms to `00_contract.md` (cited as "C §x"); deviations are listed in
-§8.3 for the reviewer. Tags: [Run] verified in §3.7 spikes, [U] unverified. Inputs: r1_5 (all), r1_8 checklist, r1_1
+Status: spec v2, 2026-10-15, Opus planner P3 re-run. Conforms to `00_contract.md` (cited as "C §x") and
+`REVIEW.md` (R-ids; B15, N06, N17, N20 applied). Deviations in §8.3 are all accepted. Tags: [Run] verified in §3.7 spikes, [U] unverified. Inputs: r1_5 (all), r1_8 checklist, r1_1
 LSP notes, r2_spikes S2/S5, `scripts/r1_5_lint/*`, `scripts/r1_1_cli/lsp_probe.py`.
 
 ## 1. Purpose and failure modes covered
@@ -70,8 +70,10 @@ h lsp diag   FILE... [--project DIR] [--oneshot]
 ```
 - One daemon per project realpath: `godot --headless --editor --path <abs> --lsp-port <free port>`. State file
   `$HARNESS_CACHE/lsp/<sha256(realpath)[:12]>.json` (schema §2.5), daemon log next to it (`.log`).
-- `start`: runs `ensure_imported` first (C §2.8.7, prints `import:`), picks a free 127.0.0.1 port, spawns the
-  daemon in its own session, waits until the port accepts and `initialize` answers (timeout kind `lsp_start` 30 s).
+- `start`: runs `godot.ensure_imported` first (C §2.8.7, prints `import:`), picks a free 127.0.0.1 port, starts the
+  daemon with `godot.spawn(run, "lsp_start", project, args, log_path)` (C §2.9, R-09; own session and process group,
+  stdin `/dev/null`, log next to the state file; A3 never calls `subprocess` on Godot), waits until the port accepts
+  and `initialize` answers (timeout kind `lsp_start` 30 s).
   Already running and answering: rc 0, same pid, reason `already running`. Stats: `pid:`, `port:`, `state: running`.
   Failed to come up: rc 1 `[lint.lsp-daemon] error` with the last daemon log line; the process is killed.
 - `status`: always rc 0. `state: running|stopped|stale` (+ `pid:`, `port:`, `uptime_s:` when running). `stale` =
@@ -79,12 +81,12 @@ h lsp diag   FILE... [--project DIR] [--oneshot]
 - `stop`: SIGTERM to the daemon's process group, SIGKILL after 3 s, remove the state file; rc 0 also when not
   running. `--all` stops every daemon in `$HARNESS_CACHE/lsp/` and needs no project.
 - `diag FILE...`: needs a running daemon, else rc 4 `ERROR lsp daemon not running (h lsp start)`. `--oneshot` =
-  start, diag, stop in one call (for `h check --lsp` and tests). Per file: connect, `initialize`/`initialized` once,
-  `textDocument/didOpen` with the text read from disk, wait up to 5 s for `publishDiagnostics` of that uri,
+  start, diag, stop in one call (scripts and tests; there is no `h check --lsp`, R-29). Per file: connect,
+  `initialize`/`initialized` once, `textDocument/didOpen` with the text read from disk, wait up to 5 s for `publishDiagnostics` of that uri,
   `didClose`; close the socket. Findings `res://f.gd:<line+1>: [lint.lsp] <sev>: <message>`, severity 1 -> error,
   2 -> warning, 3/4 -> info. No diagnostics within 5 s: `[lint.lsp-timeout] warning` for that file.
 - `--strict`, rc and stdout per C §2.3/§2.4. The daemon itself is long-lived and is not an `invocations` entry of
-  `diag`; `start` records one invocation of kind `lsp_start` with `timed_out`/`rc` = readiness result.
+  `diag`; `start` records one invocation of kind `lsp_start` (via `godot.spawn`) with `timed_out`/`rc` = readiness result.
 
 ### 2.3 Python API (for A1 `h check` and A8 hooks; module `harness.lint`)
 ```python
@@ -93,7 +95,9 @@ def run_lint(run: out.Run, project: Path, paths: list[Path] | None = None, mode:
 def lsp_diag(run: out.Run, project: Path, files: list[Path], start: bool = False) -> bool
     # adds lint.lsp findings; start=True behaves like --oneshot; returns False if no daemon and start=False.
 ```
-A1's `h check` calls `run_lint(run, project, None, "full")` (+ `lsp_diag(..., start=True)` for `--lsp`). A8's hook
+This API is canonical (R-29). A1's `h check` step 9 calls `run_lint(run, project, None, "full")` when no PATH and no
+`--changed` were given (lints project.godot too); otherwise it passes the selected file list including dependents, and
+`run_lint` still applies `exclude`. `h check` has no `--lsp` flag (R-29); `lsp_diag` serves `h lsp diag` and the `--hook` LSP path. A8's hook
 runs `h lint --hook <file>` and may skip its `--check-only` call when stdout has `lsp: used` and no `lint.lsp-timeout`.
 
 ### 2.4 Rule data: `tools/harness/rules/lint_rules.json` (public data; tests may read it)
@@ -127,11 +131,14 @@ runs `h lint --hook <file>` and may skip its `--check-only` call when stdout has
 [lint]
 severity = {}            # {"<rule id>" | "<family>-*" | "lint.*" = "error"|"warning"|"info"|"off"}
 exclude = ["res://addons/**"]     # globs over res:// paths; ** = any depth
-replay_dirs = ["res://"] # determinism scope "det" (warnings); [harness] sim_dirs is scope "sim" (errors)
+replay_dirs = []         # determinism scope "det" (warnings); [harness] sim_dirs is scope "sim" (errors)
 rng_files = ["**/rng.gd"]          # exempt from lint.det-global-rng
 remap_files = ["**/*remap*.gd", "**/*rebind*.gd", "**/*keybind*.gd"]   # exempt from lint.raw-keycode
 lsp_in_hook = true
 ```
+`replay_dirs` defaults to `[]` (R-08): user projects stay quiet about UI Tween/Timer/AnimationPlayer, while
+`sim_dirs` still give errors. Projects opt in to strict mode with `[lint]\nreplay_dirs = ["res://"]`; A9's
+`templates/project/harness.toml` and `sample/harness.toml` do so, as does fixture `lint_clean_demo` (§6.3).
 A `severity` key that matches no rule, or a value outside the enum: rc 2 `[harness.config]` naming the key. A file
 in `sim_dirs` is scope `sim`, else in `replay_dirs` scope `det`, else neither. Severity resolution: exact id >
 family glob > `lint.*` > rule default.
@@ -220,7 +227,7 @@ match; none -> no line). Finding `lint.g3-oracle` warning, message `converter wo
 Hook mode one file <= 300 ms wall incl. shim ([Run] core 11-12 ms, `h --help` 45-51 ms). Full mode <= 3 s per 1,000
 files ([Run] 992 demo files, 5.7 MB: 1.36 s). Oracle <= 5 s ([Run] 0.29 s). `lsp start` <= 15 s on a small imported
 project ([Run] ready in 3.5 s). `lsp diag` 5 files on a warm daemon <= 1.5 s wall ([Run] 0.12-0.30 s per client).
-New Godot kinds (§8.3): `oracle` 60 s, `lsp_start` 30 s; both scaled by `HARNESS_TIMEOUT_SCALE`.
+Godot kinds `oracle` 60 s and `lsp_start` 30 s are in the C §2.8.2 table (R-09); both scaled by `HARNESS_TIMEOUT_SCALE`.
 
 ### 3.7 Spikes (scratchpad `a3/`, Godot 4.7.stable.official.5b4e0cb0f, Python 3.13; all [Run])
 - YAML -> JSON: 1,213 rules, ids unique; risk low 1,161 / medium 13 / high 39; families fn 409, class 195, tscnclass
@@ -237,12 +244,13 @@ New Godot kinds (§8.3): `oracle` 60 s, `lsp_start` 30 s; both scaled by `HARNES
 - LSP daemon on an imported 3-file project: port ready 3.5 s after spawn; 3 sequential client connections each got
   correct diagnostics (c24 2 errors line 2; c02 `"onready" keyword was removed` line 2; c20 none) in 2-59 ms per
   file; sources unchanged. A `setsid` wrapper pid was not the Godot pid (daemon survived the kill).
-- dodge_the_creeps (MIT, 8 text files): 0 regex hits; by grep, default scopes give 5 `lint.det-idle-timer`
+- dodge_the_creeps (MIT, 8 text files): 0 regex hits; by grep, with `replay_dirs = ["res://"]` (the fixture's harness.toml, §6.3) gives 5 `lint.det-idle-timer`
   (hud.gd:16 `create_timer(1)`, hud.tscn:57, main.tscn:30/33/35) + 4 `lint.det-global-rng` (main.gd:30/39/43,
   mob.gd:5) warnings.
 
 ## 4. Acceptance criteria
-Layers: `data` = pytest reading the public JSON files (no harness import; deviation §8.3), others per C §2.12. All
+Layers: `data` = pytest reading the public `tools/harness/rules/*.json` files, no harness import (accepted, R-01,
+C §2.12); others per C §2.12. All
 `h` results pass `assert_contract`. "copy" = B3 temp copy of the named fixture.
 - AC-03.1 `lint_rules.json` validates against §2.4; its r1_5 id set equals the ids in
   `research/scripts/r1_5_lint/lint_rules_full.yaml`; every regex compiles; every anchor occurs in its regex; low ->
@@ -251,8 +259,9 @@ Layers: `data` = pytest reading the public JSON files (no harness import; deviat
   severity) findings equals the table exactly (files listed as "none" have no finding). [contract]
 - AC-03.3 Dedup: `c10`:3 has `fn-rand_range`, not `syn-rand-seed`; `g3.tscn:5` `tscnclass-Spatial`, not `tscn-g3-types`.
 - AC-03.4 `lint_base` copy: rc 0, PASS, zero findings, `run.json.invocations == []`. [contract]
-- AC-03.5 `lint_clean_demo` copy: rc 5, WARN, 0 error findings, exactly the 9 warnings of §3.7 (path, line, rule);
-  with `harness.toml` `[lint] replay_dirs = []`: rc 0 PASS. [contract]
+- AC-03.5 `lint_clean_demo` copy (its shipped harness.toml sets `replay_dirs = ["res://"]`, §6.3): rc 5, WARN, 0 error
+  findings, exactly the 9 warnings of §3.7 (path, line, rule); with harness.toml replaced by `[lint]\nreplay_dirs = []`:
+  rc 0 PASS. [contract]
 - AC-03.6 Hook speed: in a `lint_base` copy, a generated clean 300-line `scripts/long.gd`; median wall of 5
   `h lint --hook --project <copy> scripts/long.gd` (after 1 warm-up) <= 300 ms. [contract]
 - AC-03.7 Full speed: 1,000 generated `.gd` files of ~100 clean lines in a copy: `h lint` <= 4 s wall. [contract, slow]
@@ -275,13 +284,15 @@ Layers: `data` = pytest reading the public JSON files (no harness import; deviat
   + `emit_signal("pressed")` -> none; signal declared in `extends "res://scripts/base.gd"` and in a `class_name`
   base -> none; `extends SomeMissingClass` -> none; `var b := Button.new()` + `b.connect("nosuch", f)` -> error;
   `obj.connect("x", f)` with untyped `obj` -> none. [contract]
-- AC-03.16 Determinism (files written into a `lint_base` copy): `randf()` in `res://sim/a.gd` -> error
+- AC-03.16 Determinism (files written into a `lint_base` copy whose `harness.toml` is first written as
+  `[lint]\nreplay_dirs = ["res://"]`, R-08): `randf()` in `res://sim/a.gd` -> error
   `lint.det-global-rng`; same in `res://scripts/a.gd` -> warning; in `res://scripts/rng.gd` -> none; `rng.randf()` ->
   none; `arr.shuffle()` in sim -> error; `Time.get_ticks_msec()` sim -> error, scripts -> warning;
   `create_tween()` -> warning, `create_tween().set_process_mode(Tween.TWEEN_PROCESS_PHYSICS)` -> none;
   `get_tree().create_timer(1.0)` -> warning, `create_timer(1.0, false, true)` -> none; `.tscn` Timer without
   `process_callback = 0` -> warning at its `[node` line, with it -> none; AnimationPlayer likewise; 
-  `Engine.time_scale = 2.0` -> warning `lint.det-time-scale`. [contract]
+  `Engine.time_scale = 2.0` -> warning `lint.det-time-scale`. Without that harness.toml (default `[]`), the
+  `res://scripts/` cases give no `lint.det-*` finding and the `res://sim/` errors stay. [contract]
 - AC-03.17 `lint.sim-node`: in `res://sim/s.gd`, `var p: NodePath`, `get_node("x")`, `get_tree()`, `extends Node2D`,
   `var n: Sprite2D` each -> error; identical code in `res://scripts/` -> no `lint.sim-node`. [contract]
 - AC-03.18 `KEY_SPACE` in `res://scripts/player2.gd` -> warning `lint.raw-keycode`; in
@@ -322,11 +333,11 @@ Layers: `data` = pytest reading the public JSON files (no harness import; deviat
 | FAULT-A3-10 | `scenes/ui.tscn`: format=3 scene, Control root with line `rect_position = Vector2(4, 4)` | 1 FAIL `ui\.tscn:\d+: \[tscn-rect-props\]` |
 | FAULT-A3-11 | `scenes/old.tscn` = r1_5 `g3.tscn` (§6.1) | 1 FAIL `old\.tscn:1: \[tscn-g3-header\]` |
 | FAULT-A3-12 | `sim/roll.gd`: `extends RefCounted\nfunc roll() -> int:\n\treturn randi() % 6` | 1 FAIL `roll\.gd:3: \[lint\.det-global-rng\] error` |
-| FAULT-A3-13 | `scripts/fx.gd`: `extends Node2D\nfunc _ready() -> void:\n\tvar t := create_tween()\n\tt.tween_property(self, "position:x", 10.0, 0.5)` | 5 WARN `fx\.gd:3: \[lint\.det-idle-tween\] warning` |
+| FAULT-A3-13 | first op `write` `harness.toml` = `[lint]\nreplay_dirs = ["res://"]\n` (R-08); then `scripts/fx.gd`: `extends Node2D\nfunc _ready() -> void:\n\tvar t := create_tween()\n\tt.tween_property(self, "position:x", 10.0, 0.5)` | 5 WARN `fx\.gd:3: \[lint\.det-idle-tween\] warning` |
 | FAULT-A3-14 | `Input.is_action_pressed("jumpp")` in a clean player script | 1 FAIL `\[lint\.input-action\] error: .*jumpp.*hint: .*jump` |
 | FAULT-A3-15 | `signal hit` + `emit_signal("hitt")` | 1 FAIL `\[lint\.signal-name\] error` |
 | FAULT-A3-16 | `sim/clock.gd`: `extends RefCounted\nfunc now() -> int:\n\treturn Time.get_ticks_msec()` | 1 FAIL `clock\.gd:3: \[lint\.det-wallclock\] error` |
-| FAULT-A3-17 | `scenes/t.tscn`: format=3, Node root + child `[node name="T" type="Timer" parent="."]` (no process_callback) | 5 WARN `t\.tscn:\d+: \[lint\.det-idle-timer\]` |
+| FAULT-A3-17 | first op `write` `harness.toml` = `[lint]\nreplay_dirs = ["res://"]\n` (R-08); then `scenes/t.tscn`: format=3, Node root + child `[node name="T" type="Timer" parent="."]` (no process_callback) | 5 WARN `t\.tscn:\d+: \[lint\.det-idle-timer\]` |
 | FAULT-A3-18 | `if Input.is_key_pressed(KEY_SPACE):` in `scripts/f.gd` | 5 WARN `\[lint\.raw-keycode\]` |
 | FAULT-A3-19 | c28 (tab lines then an 8-space line) | 1 FAIL `f\.gd:4: \[lint\.indent-mixed\]` |
 | FAULT-A3-20 | `sim/state.gd`: `extends RefCounted\nvar target: NodePath` | 1 FAIL `state\.gd:2: \[lint\.sim-node\]` |
@@ -339,7 +350,7 @@ Layers: `data` = pytest reading the public JSON files (no harness import; deviat
 | FAULT-A3-27 (nice) | `scripts/bad.gd` parse error line 4; verb `lsp`, args `["diag", "--oneshot", "{project}/scripts/bad.gd"]`; max 60 | 1 FAIL `bad\.gd:4: \[lint\.lsp\] error` |
 | CLEAN-A3-01 | none (`lint_base`) | 0 PASS, not_regex `\[` |
 | CLEAN-A3-02 | fixture `lint_clean_demo` | 5 WARN `\[lint\.det-idle-timer\]`, `\[lint\.det-global-rng\]`, not_regex `\] error:` |
-| CLEAN-A3-03 | `lint_clean_demo` + `harness.toml` `[lint]\nreplay_dirs = []` | 0 PASS |
+| CLEAN-A3-03 | `lint_clean_demo` with `harness.toml` replaced (`write`) by `[lint]\nreplay_dirs = []` | 0 PASS |
 
 ## 6. Fixtures needed (test-writer T3; `tests/fixtures/projects/<name>/`, C §2.11)
 ### 6.1 `godot3_scripts` (r1_5 corpus; the scratchpad copy is ephemeral, so content is given here)
@@ -396,7 +407,8 @@ Scenes `scenes/*.tscn`:
   9:tscn-rect-props (E).
 - `g4_ok.tscn` (g4_mixed header/ext_resource, `ExtResource("1")`, Root Node2D + child CharacterBody2D) and
   `g4_badscript.tscn` (`[gd_scene format=3]`, script `res://cases/c02_onready.gd` id `"1"` on a Node root) -> none.
-### 6.2 `lint_base` (clean 4.7 project; must give PASS with zero findings, also warnings)
+### 6.2 `lint_base` (clean 4.7 project, no harness.toml; must give PASS with zero findings, also warnings, under the
+default and under `replay_dirs = ["res://"]`)
 `project.godot` (C §2.11 + `[input]` actions `jump`, `move_left`, `move_right`), `FIXTURE.md`,
 `scripts/player.gd` (typed `CharacterBody2D`, `signal hit`, `hit.emit()` (no string emit: it warns), actions via
 `Input.get_axis("move_left","move_right")`/`is_action_just_pressed("jump")`, one `create_tween().set_process_mode(
@@ -406,8 +418,9 @@ Tween.TWEEN_PROCESS_PHYSICS)`), `scripts/base.gd` (`class_name BaseThing extends
 player script, `Timer` child with `process_callback = 0`, `AnimationPlayer` child with `callback_mode_process = 0`).
 ### 6.3 `lint_clean_demo`
 Text files of godot-demo-projects@b761b4c `2d/dodge_the_creeps` (MIT; keep `LICENSE`): `project.godot`, `hud.gd`,
-`hud.tscn`, `main.gd`, `main.tscn`, `mob.gd`, `mob.tscn`, `player.gd`, `player.tscn` (no `.uid`, no art). FIXTURE.md
-records the source commit, licence, and "lint only: WARN 9 warnings, 0 errors; h check not applicable".
+`hud.tscn`, `main.gd`, `main.tscn`, `mob.gd`, `mob.tscn`, `player.gd`, `player.tscn` (no `.uid`, no art), plus our own
+`harness.toml` = `[lint]\nreplay_dirs = ["res://"]\n` (R-08; strict mode, so the 9 warnings fire). FIXTURE.md records
+the source commit, licence, that harness.toml is ours, and "lint only: WARN 9 warnings, 0 errors; h check not applicable".
 
 ## 7. Build order (builder B3, after B1's step 0; run `pytest tests/contract/a3 tests/unit/a3 -q` per step)
 1. `build_lint_data.py` + the three JSON files; `rules.py` loader -> AC-03.1.
@@ -427,22 +440,22 @@ auto-fix or `--convert-3to4` (r1_5: it renamed `$Sprite` to `$Sprite2D`); `.tscn
 (A1/A2); LSP hover/definition/symbols, DAP; C# rules (D1); LSP daemon idle auto-shutdown (`stop --all` exists).
 
 ### 8.2 Open questions [U]
-1. Default `replay_dirs = ["res://"]` makes every idle Tween/Timer and global RNG call in game code a warning: safe
-   for A5 replays, noisy for UI code. The reviewer may prefer `[]` until A9 marks replayed dirs.
+1. Closed by R-08: default `replay_dirs = []`; template, sample and `lint_clean_demo` opt in to `["res://"]` (§2.6).
 2. Instanced/inherited `.tscn` nodes (no `type=`) are not checked for idle Timer/AnimationPlayer.
 3. Whether the headless editor daemon writes into a real project (spike: sources untouched; `.uid` files came from
    `--import`); two editors on one project are avoided by one daemon per project.
 
-### 8.3 Deviations from the contract (for the spec reviewer)
-- New Godot kinds `oracle` (60 s, expected rc {0}) and `lsp_start` (30 s, readiness). The daemon needs a new
-  `godot.spawn(run, kind, project, args) -> Popen` (own session, log, recorded in run.json) since `godot.run()` waits;
-  P0/A1 add it, or A3's `lsp_daemon.py` calls `subprocess` for this one long-lived process.
-- Tests read `tools/harness/rules/*.json` as public data (layer `data`); no harness module is imported (C §2.12).
-- `h lsp stop --all` needs no project (C §2.2 lists `lsp stop`); `start|status|diag` resolve one.
-- r1_5 ids keep upper case (`enum-BUTTON_LEFT`, `class-KinematicBody2D`); C §2.7's pattern is lower-case; the r1_5
-  exception in C §2.7 is read as covering them.
+### 8.3 Deviations from the contract (all accepted; now in the contract)
+- **Accepted (R-09).** Godot kinds `oracle` (60 s, expected rc {0}) and `lsp_start` (30 s, readiness) are in C §2.8.2;
+  B1 builds `godot.spawn(run, kind, project, args, log_path=None) -> Popen` (C §2.9). `lsp_daemon.py` uses it and
+  never calls `subprocess` on Godot.
+- **Accepted (R-01).** Tests read `tools/harness/rules/*.json` as public data (layer `data`); no harness module is
+  imported (C §2.12).
+- **Accepted (R-48).** `h lsp stop --all` needs no project (C §2.2); `start|status|diag` resolve one.
+- **Accepted (R-38).** r1_5 ids keep upper case (`enum-BUTTON_LEFT`, `class-KinematicBody2D`); C §2.7's pattern is
+  `[a-z0-9][a-zA-Z0-9._-]*` (upper case only in undotted r1_5 ids), matching §2.4.
 
 ### 8.4 Assumptions taken
-D1 (GDScript only), D5 small tier; A1 owns `h check` and calls `run_lint`/`lsp_diag` (§2.3); A8 owns hook scripts
+D1 (GDScript only), D5 small tier; A1 owns `h check` and calls `run_lint` only (§2.3, R-29); A8 owns hook scripts
 and decides blocking; A5 provides the `Rng` autoload named in hints; A9's sim dirs default to `res://sim` and A9
 uses `lint.sim-node` as its "no Node/NodePath in state" rule; the sample (A9) is written to give `h lint` PASS.
