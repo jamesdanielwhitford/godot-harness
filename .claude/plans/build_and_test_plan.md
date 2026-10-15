@@ -20,7 +20,7 @@ Tags: **[U]** unverified or a judgement call; **[DEFAULT]** a proposed answer to
 | 1a | P0 contract spec `specs/00_contract.md` | done (v2) | session 002 | REVIEW B01–B07 + N03, N14, N17, N18 applied |
 | 1b | Planner specs A1–A9 | done (v2); A8 spec still v1 | session 002 | P1-P7, P9 re-runs applied. P8 (N10, N24) before T8; planner pass for N25-N29 (REVIEW §8.3) optional |
 | 1c | Spec consistency review `specs/REVIEW.md` | done; **G1 passed** | session 002 | re-check in REVIEW §8: B01–B19 applied; new decisions R-51..R-56 (R-51: sample copies need `h sync --no-gdunit`). Tag `specs-v1` |
-| 2 | Core tests written + locked (A1–A4) | not started | | blocked on B01–B15 |
+| 2 | Core tests written + locked (A1–A4) | tests written (T1-T4) and committed; red check running; **not locked yet** | e715c8f, 8a1b375, dd08e2c, 931011f, c07e27d / session 002 | next: fix red-check findings, `tools/dev/lock_tests.sh`, commit `[phase2] lock tests` |
 | 3 | Core built (A1, then A2/A3/A4) | todo | | |
 | 4 | Core verified from fresh clone, tag `v0-core` | todo | | Gate G2 |
 | 5 | A5 scenario, A9 sim/view + sample, A6 visual, A7 feel | todo | | Gate G3 |

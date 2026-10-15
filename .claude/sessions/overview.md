@@ -6,22 +6,23 @@ Read this first, then the newest `session-NNN-*.md`. Narrative detail lives in t
 | # | Date | Key outcomes |
 |---|---|---|
 | 001 | 2026-10-15 | Round 1 research; build plan; Phase 0 (bootstrap, h doctor, dev tools, spikes S1-S6, G0 passed); RP.1/RP.2; contract + specs A1-A9; REVIEW: G1 NOT passed (19 blocking) |
+| 002 | 2026-10-15 | Orchestrator edits N12/N13; all planner re-runs; **G1 passed** (REVIEW §8, R-51..R-56); Phase 2 tests T1-T4 written and committed (not locked) |
 
 ## Current status
-- Built: A0 `tools/bootstrap.sh` + `tools/harness/h doctor` (pins in `tools/harness/pins.toml`); A0b dev tools `tools/dev/*.sh`.
-- Specified only: `.claude/plans/specs/00_contract.md`, `01`-`09` (143 faults + 28 clean). No harness verbs beyond doctor, no tests/LOCK, no tags.
-- G1 NOT passed: `.claude/plans/specs/REVIEW.md` lists B01-B19 (blocking) and N01-N24; REVIEW wins over specs until re-runs land.
-- Phase 2 (core tests) not started; blocked on B01-B15 + orchestrator edits N12/N13.
-- Round P: RP.1 and RP.2 done (`.claude/research/rp_1_baseline.md`, `rp_2_references.md`); topic agents wait for G2.
-- Plan: `.claude/plans/build_and_test_plan.md` (§0 status board current). Handoff: `.claude/handoff/*/status.md`.
-- Decisions: D1-D5 defaults in force (GDScript only, 2D platformer + grid, no MCP, agent never judges feel, small tier).
-- Branch `main` only; agents never commit; orchestrator commits `[Area][role]` after pathguard.
-- Env: scratchpad from session 001 is gone; bootstrap re-creates Godot/gdUnit4/odiff/.venv. github.com web/API blocked, git clone works.
-- Custom subagent types unverified in a fresh session (`.claude/agents/*.md`).
-- Publish state: nothing published outside the repo.
-- User must delete remote branches `spike-test`, `build/x-spike` (agents get HTTP 403).
+- Built: A0 `tools/bootstrap.sh` + `tools/harness/h doctor`; A0b dev tools `tools/dev/*.sh` (ci.sh gd layer now `pytest tests/gd`).
+- Specs: contract + A1-A9 all re-run for REVIEW except A8 (`08_claude_wiring.md`, N10/N24 open before T8). **G1 passed** (REVIEW §8). Decisions R-51..R-56 apply ahead of spec edits. Tag `specs-v1` is local only (tag push 403); commit ec98abe.
+- Phase 2 core tests written and committed (not locked): `tests/{unit,contract,e2e}/{p0,a1,a2,a3,a4}/`, helpers `tests/helpers/{h,gd}.py`, fixtures under `tests/fixtures/`, faults/clean under `selftest/`. ~615 tests collect, all red (no harness verbs beyond doctor). Red-check verifier report: `.claude/handoff/phase2/verify_2026-10-15_red.md` (if missing, rerun it).
+- No harness code beyond `doctor`; no `tests/LOCK.sha256`; no `v0-*` tags.
+- Round P: RP.1, RP.2 done; topic agents wait for G2.
+- Plan: `.claude/plans/build_and_test_plan.md` (§0 current). Handoff: `.claude/handoff/*/status.md`, `test_notes.md`.
+- Decisions: D1-D5 defaults; provisional-default baselines (WARN until G3 approval); `replay_dirs = []` user / `["res://"]` template+sample. User said: work autonomously, choose recommended options, notify when all work is done.
+- Custom subagent types resolve by `subagent_type` (verified session 002). Agents never commit; orchestrator commits `[Area][role]` after pathguard (parallel agents share the tree, so pathguard with comma area list or commit by pathspec).
+- Do not leave polling shell watchers running; rely on agent completion notices.
+- Publish state: nothing published outside the repo. User must delete remote branches `spike-test`, `build/x-spike` (agents get 403).
 
-## Next session checklist
+## Next session checklist (session 002 completed items 1-8 of the old list: pull, bootstrap, verifier type test, user defaults, Waves 1-3, orchestrator edits, G1 re-check, Phase 2 tests)
+- [ ] Read red-check report; fix helper/fixture bugs and vacuous passes via the owning test-writer; `tools/dev/lock_tests.sh`; commit `[phase2] lock tests`; push.
+- [ ] Phase 3: B1 -> core-ready gate -> B2/B3/B4; T5/T9/T7 then T6. (Then continue with the original items below from Phase 3.)
 - [ ] Start: `git pull`; read CLAUDE.md, this file, `session-001-2026-10-15.md` (section "Next steps, in order"), plan §0, REVIEW.md in full.
 - [ ] `tools/bootstrap.sh` then `tools/harness/h doctor` (Godot from bootstrap cache; re-clone research refs by pinned commit only if needed).
 - [ ] Test one `subagent_type: "verifier"` spawn; if it resolves use role types (hooks can use `agent_type`), else general-purpose + `model` + pasted role text. Record in plan §0.

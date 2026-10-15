@@ -5,7 +5,7 @@ Goal: build a harness that makes an LLM coding agent (Claude Code) work as well 
 Target engine: **Godot 4.7 stable** (`4.7.stable.official.5b4e0cb0f`).
 
 ## Status
-Phase 0 done (bootstrap, `h doctor`, dev tools); contract and specs A1-A9 written; spec review G1 not yet passed. Current status and the next-session checklist: `.claude/sessions/overview.md`.
+Phase 0 done (bootstrap, `h doctor`, dev tools). G1 passed (specs 00-07, 09 re-run; REVIEW re-check in `specs/REVIEW.md` §8; tag `specs-v1` is local only because tag pushes get HTTP 403). Phase 2 core tests (P0, A1-A4) written and committed, not yet locked; no harness code beyond `doctor`. Current status and next-session checklist: `.claude/sessions/overview.md`.
 
 ## Start of every session
 1. Read `.claude/sessions/overview.md` first, then the latest `.claude/sessions/session-NNN-YYYY-MM-DD.md` (handoff, open decisions, detailed next steps).
