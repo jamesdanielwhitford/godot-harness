@@ -1,7 +1,8 @@
 # 04 Test runner (A4, C5)
 
-Status: spec v1, 2026-10-15, Opus planner P4. Conforms to `00_contract.md` (cited as "contract §x"); deviations are
-listed in §8. Tags: [Run] verified in this spec's spikes (§3.7) or cited research, [U] unverified.
+Status: spec v2, 2026-10-15, Opus planner P4 re-run (applies REVIEW.md v1 N01, N02, N17; R-01, R-24, R-31, R-39
+consistency). Conforms to `00_contract.md` (cited as "contract §x"); deviations are listed in §8. Tags: [Run]
+verified in this spec's spikes (§3.7) or cited research, [U] unverified.
 
 ## 1. Purpose and failure modes covered
 
@@ -56,15 +57,17 @@ Common flags, project resolution, env vars: contract §2.2. Needs a project.
 
 ### 2.2 Stdout (contract §2.3, plus a stricter A4 cap)
 
-`h test` prints **at most 15 lines**: verdict, up to 4 stat lines, at most 8 finding lines (contract order: errors,
-then warnings, then info), the truncation line if needed, the log line. All findings go to `findings.jsonl`.
+`h test` prints **at most 15 lines** (verb-local cap, R-02; the contract's 40-line limit still applies and is checked
+by `assert_contract`): verdict, up to **5** stat lines (`project`, `import`, `gdunit4`, `tests`, `selected`), finding
+lines (contract order: errors, then warnings, then info) up to **8**, or **7** when the `selected:` stat is shown, the
+truncation line if needed, the log line (1 + 5 + 7 + 1 + 1 = 15). All findings go to `findings.jsonl`.
 
 Verdict reasons (counts always shown in this order, zero parts omitted except `passed`):
 `<f> failed, <e> errors, <o> orphan warnings, <p> passed of <n> tests (<t>s)`; when gdUnit4 never ran tests:
 `tests not run: <why> (<t>s)`.
 
-Stat lines, in this order: `project:`, `import:` (contract §2.8.7), `gdunit4:` (`v6.2.2 present` | `v6.2.2 installed
-(was missing)`; on rc != 0 from gdUnit4 append `, rc <N>`), `tests:` (`<n> total, <p> passed, <f> failed, <e> errors,
+Stat lines, in this order: `project:`, `import:` (contract §2.8.7), `gdunit4:` (`v6.2.2 ` + the string returned by
+`sync.install_gdunit4`, i.e. `present` | `installed (was missing)`; on rc != 0 from gdUnit4 append `, rc <N>`), `tests:` (`<n> total, <p> passed, <f> failed, <e> errors,
 <s> skipped, <o> orphans` | `not run`), and `selected:` (`<k> suites, <m> tests (<targets or test_dir>)`) only when
 TARGETs/`--filter`/`--changed` were given.
 
@@ -107,7 +110,7 @@ log: /tmp/h/broken/.harness/out/20261015T150300Z-test-11aa/
 | `test.failed` | error | §3.4 location rule | `<suite>::<test>[:<row>]: <collapsed failure text>` |
 | `test.error` | error | §3.4 location rule | same, for XML `<error>` (runtime error, type ABORT) |
 | `test.orphans` | warning (policy) | `res://<suite>.gd:<line of func>` | `<suite>::<test>: <N> possible orphan node(s)` hint `free() nodes you create or wrap them in auto_free()` |
-| `test.no-tests` | error | `-` or the target | `no tests selected` / `gdUnit4 ran 0 tests` (hint names the targets) |
+| `test.no-tests` | error | `-` or the target | `no tests selected` / `gdUnit4 ran 0 tests` (hint names the targets). Always an error, so the 0-test FAIL keeps the contract §2.3 invariant; the only 0-test PASS is `--changed` with nothing selected (§2.1), which emits no finding (PASS = no error/warning, contract §2.4) |
 | `test.report-missing` | error | `-` | `gdUnit4 exited <rc> but wrote no results.xml` |
 | `harness.hang` | error | `res://<suite>.gd:<line of func>` of the last `STARTED` test without an end line, else `-` | contract §2.8.3 message + ` in test '<suite>::<test>'` |
 | `harness.rc` | error | `-` | `gdUnit4 exited <rc>` + hint for rc 1: `GdUnitCmdTool failed to load (see log; try h import, h sync)` |
@@ -199,17 +202,24 @@ func test_jump_counts_once() -> void:
 ### 3.1 Files (A4 builder)
 - `tools/harness/harness/verbs/test.py`: argparse, `CONFIG_TABLE`/`CONFIG_KEYS`, orchestration.
 - `tools/harness/harness/gdunit.py`: target resolution, test-name listing, argv building, `results.xml` and console
-  parsing, failure-text collapsing, rc map. Public to unit tests (see §8 D-1).
+  parsing, failure-text collapsing, rc map. **Public to unit tests (closed list, contract §2.12 / R-01): only
+  `parse_results(xml_text: str) -> list[dict]` (keys suite, name, status, duration_s, path, line, message) and
+  `parse_console(log_text: str) -> dict` (keys counts, hung, orphans, ansi-stripped lines).** Both are pure and
+  stdlib-only; so `gdunit.py` imports no other `harness.*` module at top level (selection/argv helpers that need
+  `project`/`godot` import them inside functions). Everything else in `gdunit.py` is private.
 - No GDScript files; no runner (gdUnit4's CmdTool is the runner). No edits to A1 files: it calls
-  `godot.ensure_imported`, `godot.run`, `out.Run`, `config.load`, and A1's `sync` API (§8 A-1).
+  `godot.ensure_imported`, `godot.run`, `out.Run`, `config.load`, and `sync.install_gdunit4` (R-33, §8 A-1).
 - Port: `.claude/research/scripts/r1_3_testing/summarize_junit.py` (XML walk) into `gdunit.parse_results`.
 
 ### 3.2 Flow of `h test`
 1. Parse args; `--dotnet` -> rc 2. Resolve project and config (contract).
-2. gdUnit4 present? `<project>/addons/gdUnit4/plugin.cfg` `version` must equal the pin (`gdunit4_tag` without `v`).
-   Missing dir -> install via A1's sync API from `$HARNESS_CACHE/gdunit4` (stat `installed (was missing)`); cache
-   missing -> rc 4 `gdUnit4 not found in <cache> (run tools/bootstrap.sh)`. Present with another version -> rc 4
-   `gdUnit4 <v> in project, harness pins 6.2.2 (run h sync)`; never overwrite a user's copy.
+2. `sync.install_gdunit4(run, project) -> str` (A1, R-33); A4 does not inspect the addon itself. Behaviour A4 relies
+   on: addon missing -> copy `$HARNESS_CACHE/gdunit4` minus `test/` and `*.uid` (K17), returns `installed (was
+   missing)`; `plugin.cfg` version equals the pin -> `present`; another version -> overwritten only if
+   `.sync.json.gdunit4_commit` is non-null (harness-installed), else rc 4 `gdUnit4 <v> in project, harness pins 6.2.2
+   (run h sync)` (a user's own copy is never overwritten); cache missing -> rc 4 `gdUnit4 not found in <cache> (run
+   tools/bootstrap.sh)`. A4 does not call `ensure_synced` (gdUnit4 tests need no harness autoloads; projects that
+   declare them use `h sync`, R-39).
 3. Resolve the selection (§3.3) without Godot. Usage problems -> rc 2. Empty -> FAIL `[test.no-tests]`
    (`--changed` exception, §2.1). No Godot run in either case.
 4. `godot.ensure_imported` (contract §2.8.7).
@@ -217,7 +227,8 @@ func test_jump_counts_once() -> void:
    res://.harness/gdunit/<run-id>, -a <suite>..., -i <suite>:<test>...])`. Absolute `-rd` paths are rewritten by
    gdUnit4 to `res://` (K2), so the report dir must be a `res://` path; `.harness/` is hidden, so never imported.
 6. Move `res://.harness/gdunit/<run-id>/report_1/*` to `artifacts/gdunit/`, delete the temp dir (also on failure).
-7. Parse (§3.4), apply the rc map (§2.4), policies (§2.5), dedup (§3.4), write `tests.json`, finish.
+7. Parse (§3.4), apply the rc map (§2.4), policies (§2.5), dedup (§3.4) over `inv.findings` (the returned
+   `Invocation` does not add them, R-31) plus the XML findings, `run.add_findings(...)`, write `tests.json`, finish.
 
 ### 3.3 Selection algorithm
 - Suite discovery for names/dirs: walk the dir for `*.gd` whose text has a line matching `^extends\s+GdUnitTestSuite\b`
@@ -339,12 +350,14 @@ plugin not enabled; command: `timeout -k 3 60 godot --headless --path P -s res:/
   TARGET. [contract]
 - AC-04.10 Zero tests: `--filter zzz` -> rc 1 `[test.no-tests]`, run.json `invocations` empty; a copy whose `tests/`
   holds only a suite with no `test_` function -> rc 1 `[test.no-tests]`; a copy without `tests/` -> rc 1. [contract]
-- AC-04.11 gdUnit4 problems: `addons/gdUnit4/plugin.cfg` with `version="6.1.0"` -> rc 4 `ERROR test gdUnit4 6.1.0`, the
-  file is not overwritten; `HARNESS_CACHE=<empty dir>` on a copy without the addon -> rc 4 `gdUnit4 not found`. [contract]
+- AC-04.11 gdUnit4 problems: `addons/gdUnit4/plugin.cfg` with `version="6.1.0"` and no `.sync.json` -> rc 4 `ERROR test gdUnit4
+  6.1.0`, the file is not overwritten (user copy, R-33); `HARNESS_CACHE=<empty dir>` on a copy without the addon -> rc 4 `gdUnit4 not found`. [contract]
 - AC-04.12 Performance: on a warm copy (imported, addon present), `h test res://tests/perf/test_many.gd` (50 trivial
   tests) -> rc 0, `tests: 50 total`, wall <= 5 s; `h test test_counter` wall <= 3 s. [contract, godot]
-- AC-04.13 Output cap: FAULT-A4-08 setup (30 failing tests) -> rc 1, <= 15 stdout lines, <= 8 finding lines, truncation
-  line `... 22 more findings (22 errors, 0 warnings) in findings.jsonl`; `findings.jsonl` has 30 `test.failed`. [contract]
+- AC-04.13 Output cap: FAULT-A4-08 setup (30 failing tests, target given so `selected:` is shown) -> rc 1, exactly 5
+  stat lines, <= 15 stdout lines, 7 finding lines, truncation line `... 23 more findings (23 errors, 0 warnings) in
+  findings.jsonl`; `findings.jsonl` has 30 `test.failed`. Same setup run with no TARGET (whole `test_dir`, other
+  suites pass) -> 4 stat lines, 8 finding lines, `... 22 more findings`. [contract]
 - AC-04.14 Artefacts: after AC-04.2's run, `artifacts/gdunit/results.xml` and `artifacts/gdunit/index.html` exist in the
   run dir; `artifacts/tests.json` validates against §2.6 and lists every test with `status`; the copy has no
   `.harness/gdunit/` dir and no `reports/` dir; `project.godot` is byte-identical before and after. [contract]
@@ -356,7 +369,7 @@ plugin not enabled; command: `timeout -k 3 60 godot --headless --path P -s res:/
   untracked suite file -> runs it; a copy that is not a git work tree -> rc 2. [contract]
 - AC-04.17 `h test --dotnet` -> rc 2, line 1 `^ERROR test --dotnet is disabled in v0 \(D1`. [contract]
 - AC-04.18 Stale class cache: on a warm copy, add `sim/dice.gd` (`class_name Dice`) and `tests/sim/test_dice.gd` using it,
-  run `h test test_dice` -> rc 0, `import: ran (` (class_name newer than cache). [contract]
+  run `h test test_dice` -> rc 0, `import: ran (stale class cache (` (new class not in the cache, contract §2.8.7 / R-24). [contract]
 - AC-04.19 Parser units on recorded inputs (§6 `tests/fixtures/gdunit/`): `gdunit.parse_results(xml)` gives the
   expected (suite, name, status, path, line, message) tuples for `fail.xml`, `runtime_error.xml` (location from the body:
   `res://scenes/buggy.gd:6`), `nested.xml` (`package` -> `res://tests/sim/test_fail.gd`); `gdunit.parse_console(log)`
@@ -376,7 +389,7 @@ Untestable automatically: none.
 | FAULT-A4-05 | write `scripts/buggy.gd` (Node2D; line 6 calls a method on a null `Object` in `_physics_process`), `scenes/buggy.tscn` (root Node2D with it), `tests/test_buggy.gd` (scene_runner, `simulate_frames(3)`, asserts only `true`) | `["test_buggy"]` | rc 1 FAIL, `^res://scripts/buggy\.gd:6: \[test\.error\]`, not_regex `^res://tests/test_buggy\.gd:6:`, <= 60 s |
 | FAULT-A4-06 | write `scripts/noisy.gd` (`class_name Noisy`, `func run() -> int:` that `push_error("noisy")` and returns 1), `tests/test_noisy.gd` asserting `Noisy.new().run() == 1` | `["test_noisy"]` | rc 5 WARN, `^res://scripts/noisy\.gd:\d+: \[godot\.error\] warning: noisy`, <= 60 s |
 | FAULT-A4-07 | none | `["res://tests/sim/test_countr.gd"]` | rc 2 ERROR, `no such test path`, <= 10 s |
-| FAULT-A4-08 | write `tests/test_many_fail.gd` with 30 tests `test_f00`..`test_f29`, each `assert_int(0).is_equal(1)` | `["test_many_fail"]` | rc 1 FAIL, `^\.\.\. 22 more findings`, <= 60 s (contract caps lines at 40; A4's 15-line cap is checked by AC-04.13) |
+| FAULT-A4-08 | write `tests/test_many_fail.gd` with 30 tests `test_f00`..`test_f29`, each `assert_int(0).is_equal(1)` | `["test_many_fail"]` | rc 1 FAIL, `^\.\.\. 23 more findings`, <= 60 s (contract caps lines at 40; A4's 15-line cap is checked by AC-04.13) |
 | FAULT-A4-09 | write `tests/test_empty.gd` (`extends GdUnitTestSuite`, a helper `func make() -> int:` only) | `["test_empty"]` | rc 1 FAIL, `\[test\.no-tests\]`, <= 10 s |
 | FAULT-A4-10 | write `addons/gdUnit4/plugin.cfg` with `version="6.1.0"` | `[]` | rc 4 ERROR, `gdUnit4 6\.1\.0`, <= 10 s |
 | FAULT-A4-11 | replace in `tests/sim/test_counter.gd` the `is_equal(5)` of `test_add_twice` with `is_equal(6)` | `["--filter", "add_twice"]` | rc 1 FAIL, `\[test\.failed\] error: test_counter::test_add_twice`, `^selected: 1 suites, 1 tests`, <= 60 s |
@@ -397,8 +410,8 @@ Fault `files/` hold the exact test/script/scene texts; `.tscn` files follow r1_4
 - `tests/fixtures/gdunit/` (recorded, for AC-04.19): `fail.xml`, `runtime_error.xml`, `nested.xml`, `hang.log`,
   `orphan.log`, `all.log`; produce them by running gdUnit4 on throwaway copies (§3.7 commands), keep ANSI codes in logs.
 - `selftest/faults/FAULT-A4-01..11/`, `selftest/clean/CLEAN-A4-01..02/` per §5 and contract §2.10.
-- The plan's `tests/fixtures/projects/gd_host` (gdUnit4 suites for `addons/harness`) is not A4's: A1/A5 own it; it is
-  run through `h test` like any project.
+- `tests/fixtures/projects/gd_host` and `tests/helpers/gd.py` are T1's (R-39, contract §2.12), not A4's; the `[gd]`
+  layer runs them through `h test --project <copy> res://tests/<area>/` like any project.
 
 ## 7. Build order (A4 builder; after A1's step 0 and A1's `sync`)
 1. `verbs/test.py` skeleton: args, `--dotnet`, `[test]` config keys, gdUnit4 presence/version/auto-install -> AC-04.11,
@@ -416,12 +429,16 @@ Out of scope (v0): C# (`--dotnet` stub, D1); GUT; coverage; parallel/sharded run
 HTML report; running tests under Xvfb for UI tests that need real InputEvents (actions work headless; a later
 `--display xvfb` flag would reuse contract §2.8.2) [deferred]; `-conf` runner config files.
 
-Deviations from the contract (for the spec reviewer):
-- D-1 Unit tests may import `harness.gdunit` (`parse_results(xml_text) -> list[dict]`, `parse_console(log_text) ->
-  dict`) in addition to `logscan`/`out` (contract §2.12). Reason: XML/console edge cases (collapsing, K10 location rule,
-  ANSI) are cheap and precise to test on recorded inputs and slow to stage through Godot.
-- D-2 `h test` caps stdout at 15 lines (stricter than 40; plan AC "summary <= 15 lines").
-- D-3 `h test --changed` with nothing selected is PASS with 0 tests (the only 0-test PASS).
+Deviations from the contract (status per REVIEW.md v1):
+- D-1 **Accepted (R-01)**, now in contract §2.12: unit tests may import `harness.gdunit` (`parse_results`,
+  `parse_console` only, §3.1). Reason: XML/console edge cases (collapsing, K10 location rule, ANSI) are cheap and
+  precise to test on recorded inputs and slow to stage through Godot.
+- D-2 **Accepted (R-02)** as a verb-local cap: stdout <= 15 lines with up to 5 stat lines and 7-8 finding lines
+  (§2.2); the contract's 40-line limit still applies. Plan AC "summary <= 15 lines".
+- D-3 Not a deviation (REVIEW v1 raised no item): `h test --changed` with nothing selected is PASS with 0 tests and no
+  finding (contract §2.4: PASS = no error/warning). Every other 0-test case is FAIL `[test.no-tests]` (error).
+- Resolved assumptions: A-1 by R-33 (`sync.install_gdunit4`, overwrite policy, §3.2 step 2); A-2 by R-31/R-32 and
+  REVIEW §4 (kind expected-rc override {0,100,101,105}; explicit `ensure_imported`; `Invocation` return).
 
 Open questions [U]:
 1. Exact XML `name` of parameterised rows (`test_params:0`?) and of `<skipped>` cases; take verbatim (AC-04.19 records).
@@ -432,12 +449,14 @@ Open questions [U]:
 4. 104 (Godot version unsupported) not observed on 4.7; mapping is from source.
 
 Assumptions on other areas:
-- A-1 (A1) `sync` exposes `install_gdunit4(run, project) -> str` (copies `$HARNESS_CACHE/gdunit4/addons/gdUnit4` to
-  `<project>/addons/gdUnit4`, excluding `test/` per K17 and `*.uid`; does not need to enable the editor plugin, K17;
-  rc 4 if the cache is missing). `h sync` uses the same function.
-- A-2 (A1/P0) `godot.run` accepts `kind="test"` with a non-runner `-s res://...` script and lets A4 supply the expected
-  rc set {0,100,101,105}; `ensure_imported` as in contract §2.8.7. Autoloads load under `-s` (K13), which also answers
-  contract open question (1) for this case.
+- A-1 (A1, settled by R-33) `harness/sync.py` exposes `install_gdunit4(run, project) -> str` returning `present` |
+  `installed (was missing)`; copies the cache addon minus `test/` and `*.uid` (K17), never enables the editor plugin
+  (not needed, K17), overwrites a differing version only when `.sync.json.gdunit4_commit` is non-null, else rc 4;
+  rc 4 if the cache is missing [U: cache-missing wording is A4's expectation, A1 owns it]. `h sync`
+  (`sync_project(..., gdunit=True)`) uses the same function.
+- A-2 (A1/P0, settled by R-31/R-32) `godot.run(kind="test")` accepts a non-runner `-s res://...` script, takes A4's
+  expected rc set {0,100,101,105}, returns an `Invocation` without adding findings; `godot.ensure_imported` is called
+  explicitly by A4 (step 4). Autoloads load under `-s` (K13; contract §8 open (1) closed).
 - A-3 (A8) the Stop hook calls `h test --changed`; the `godot-test` skill uses §2.7 (layout, two examples, rules).
 - A-4 (A9) the sample keeps tests in `sample/tests/{sim,scenes}/` and passes `h test` with 0 orphans.
 - A-5 (A5) scenario replays are `h run`, not gdUnit4 tests; A4 does not run scenarios.

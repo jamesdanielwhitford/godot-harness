@@ -1,14 +1,21 @@
 area: A4 test-runner      phase: plan      state: done
-spec: .claude/plans/specs/04_test_runner.md @ uncommitted
+spec: .claude/plans/specs/04_test_runner.md (v2) @ uncommitted
 tests: 0 total (spec only; 21 ACs, 11 faults + 2 clean entries for T4)      lock: n/a
-updated: 2026-10-15 by planner (claude-opus-5-5)
+updated: 2026-10-15 by planner re-run (claude-opus-5-5)
 done:
-- 04_test_runner.md (444 lines): `h test [TARGET...] [--filter] [--changed] [--dotnet]`, 15-line output, rc map 0/100/101/103/104/105/1/124, `[test]` config (orphans, push_error), tests.json schema, layout convention + sim/scene test examples for the A8 skill
-- S4 resolved: harness pre-resolves targets (gdUnit4 exits 0 on bad paths), single test = `-a suite` + `-i res://suite:other` per other test
-- 17 spikes [Run] (K1-K17) incl.: absolute -rd rewritten to res:// (use res://.harness/gdunit/<run-id>), 105 writes no report, XML message gives wrong file for runtime errors in game code (use CDATA body), push_error passes in gdUnit4, orphans only on console, hang identifiable by last STARTED line, autoloads load under -s
+- v1 (444 lines): `h test` verb, rc map, `[test]` config, tests.json, layout convention, 17 spikes [Run] (K1-K17)
+- v2 (463 lines), REVIEW.md v1 applied:
+  - N01/R-02: §2.2 up to 5 stat lines; finding lines 8, or 7 when `selected:` shown (keeps 15-line cap);
+    AC-04.13 and FAULT-A4-08 now expect `... 23 more findings` (target given), AC-04.13 adds a no-target 22 case
+  - N02/R-33: §3.2 step 2 calls `sync.install_gdunit4` (present | installed (was missing)); differing version
+    overwritten only if `.sync.json.gdunit4_commit` non-null, else rc 4; §3.1, §3.6 wording, AC-04.11, §8 A-1
+  - N17: §8 D-1 accepted (R-01), D-2 accepted (R-02), D-3 noted as consistent with contract §2.4; A-1/A-2 settled
+  - R-01: §3.1 closed public list `gdunit.parse_results` / `gdunit.parse_console`
+  - `[test.no-tests]` row (§2.3): always error; `--changed` empty = only 0-test PASS, no finding
+  - consistency: R-31 (`Invocation`, explicit add_findings, §3.2 step 7), R-24 (AC-04.18 `stale class cache (`),
+    R-39 (§6 gd_host/gd.py are T1's)
 next:
-- spec reviewer: decide deviations D-1 (unit tests import harness.gdunit), D-2 (15-line cap), D-3 (--changed 0-test PASS)
-- A1 planner/reviewer: confirm assumption A-1 (sync.install_gdunit4 API, h test auto-installs gdUnit4 when missing) and A-2 (godot.run kind "test" with A4's expected rc set)
+- spec reviewer G1 re-check
 - T4 writes tests/{unit,contract}/a4/, fixture gd_tests + tests/fixtures/gdunit/ recordings, FAULT-A4-01..11, CLEAN-A4-01..02
 blockers:
 - none
