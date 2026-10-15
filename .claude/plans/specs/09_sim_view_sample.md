@@ -1,38 +1,32 @@
 # 09 Simulation/view template, project template and sample game (A9, planner P9; absorbs R2.3)
 
 Status: spec v1, 2026-10-15, Opus planner P9. Conforms to `00_contract.md` ("C §x"); deviations in §8.3. Uses verbs
-of 01-05 as specified there and of 06/07 as plan §3.2 defines them. Tags: [Run] verified in §3.5 spikes (Godot
+of 01-05 as specified there and of 06/07 as plan §3.2 defines them. Tags: [Run] verified in §3.4 spikes (Godot
 4.7.stable.official.5b4e0cb0f, scratchpad `a9/`), [U] unverified.
 
 ## 1. Purpose and failure modes covered
-A9 adds no verb. It ships GDScript that the verbs act on: (a) `templates/sim_view/`, a node-free simulation core
-(`apply(world, cmd) -> events`, stable int ids, versioned snapshots) plus a view core that reconciles from events
-and rebuilds from a snapshot; (b) `templates/project/`, a new-project template with the determinism settings,
-named layers, InputMap actions and the "small" tier autoload set; (c) `sample/`, a two-scene game (D2) that is the
-dogfood of A2 (every scene generated), A4 (tests), A5 (scenarios), A6 (shots) and A7 (traces).
-- **R1.6 sim/view split**: rules in RefCounted under `res://sim` (A3 `lint.sim-node` and `lint.det-*` at error
-  severity there), commands in through `CommandBus`, events out, view = disposable nodes keyed by int id.
+A9 adds no verb. It ships the GDScript the verbs act on: `templates/sim_view/` (node-free sim core, `apply(world,
+cmd) -> events`, stable int ids, versioned snapshots; a view core that reconciles from events and rebuilds from a
+snapshot), `templates/project/` (determinism settings, named layers, InputMap actions, "small" tier autoloads) and
+`sample/`, a two-scene game (D2) that dogfoods A2 (all scenes generated), A4, A5, A6 and A7.
+- **R1.6 split**: rules in RefCounted under `res://sim` (A3 `lint.sim-node`/`lint.det-*` are errors there),
+  commands in via `CommandBus`, events out, views are disposable nodes keyed by int id.
 - **R1.8 determinism**: one seeded RNG inside the world, saved as seed+state; fixed ticks; physics-mode tweens; no
-  wall clock in sim; the 64-bit RNG state is lossy through JSON numbers [Run S2], so the codec stores it as a string.
-- **Lossy saves (P13)**: JSON numbers come back as float; typed `int` fields silently truncate `3.5` -> 3 and
-  untyped dicts keep `2.0` [Run S3]. A strict codec (`SimCodec`) rejects non-integral values; round-trip is
-  checked by text equality, not by `==` alone.
-- **rp_1 traps**: (1) scene-change guard that drops requests (P10, D7) -> `SceneManager.goto` never drops;
-  (2) claimed-but-untested timing windows (P01, D2) -> coyote/buffer/apex are pure-motor tests and scenarios;
-  (3) gameplay bound to `ui_*` or code-registered actions (P15, D8) -> named actions in project.godot only.
-- **P01, P08, P10, P11** (addendum rows): tunables in `.tres`, asymmetric gravity, coyote/buffer, fps-independent;
-  levels are generated scenes with Spawn/Exit, the player is spawned by the game; one SceneManager; <= 3 game
-  autoloads besides the 3 dormant harness autoloads.
-- **Solium/Cronin view rules**: events carry end state; the view snaps to it after animating, so a missed or wrong
-  handler cannot leave the view wrong (snap-to-end); rejections are events (problems and events unified).
+  wall clock in sim. The 64-bit RNG state is lossy as a JSON number [Run S2], so it is stored as a string.
+- **Lossy saves (P13)**: JSON numbers parse as float; typed `int` fields silently truncate 3.5 -> 3, untyped dicts
+  keep `2.0` [Run S3]. `SimCodec` rejects non-integral values; round-trips are checked by text equality.
+- **rp_1 traps**: (1) scene-change guard dropping requests (P10, D7) -> `SceneManager.goto` never drops; (2)
+  claimed-but-untested timing windows (P01, D2) -> coyote/buffer/apex as pure motor tests and scenarios; (3) input
+  on `ui_*` or code-registered actions (P15, D8) -> named actions in project.godot only.
+- **P01, P08, P10, P11**: tunables in `.tres`, asymmetric gravity, coyote/buffer, fps-independent; generated
+  levels with Spawn/Exit and the player spawned by the game; one SceneManager; <= 3 game autoloads.
+- **Solium/Cronin**: events carry end state and the view snaps to it after animating (snap-to-end), so a missed
+  handler cannot leave the view wrong; rejections are events (problems and events unified).
 
 ## 2. Interfaces
 
-### 2.1 Verbs used (all from other areas; A9 adds none)
-`h scene-gen --force sample/specs/*.scene.json` (A2) builds every sample scene. `h check`, `h lint`, `h test`,
-`h run [--twice|--record]`, `h digest`, `h shot`/`h baseline propose` (A6), `h trace` (A7) must PASS on the sample.
-Rule ids: the `sim.` prefix (C §2.7) stays unused in v0; A9 relies on `lint.sim-node`, `lint.det-*` (A3),
-`run.*` (A5), `test.*` (A4).
+### 2.1 Verbs used (A9 adds none; the `sim.` rule prefix of C §2.7 stays unused in v0)
+`h scene-gen --force` (A2) builds every sample scene; `check lint test run digest shot trace` must PASS on it.
 
 ### 2.2 Sim core (`templates/sim_view/sim/`, copied verbatim to `sample/sim/core/`)
 ```gdscript
@@ -106,25 +100,22 @@ func submit(cmd: Dictionary) -> Array        # = CommandBus.submit(cmd); input c
 func save_to(path: String) -> Error ; func load_from(path: String) -> Error   # load: fresh world, swap, bind
 ```
 `_handle(cmd)` = `rules.apply(world, cmd)`, then `view.apply_events(evs)`, emit `events`, return `evs`.
-`_handle(cmd)` = `rules.apply(world, cmd)`, then `view.apply_events(evs)`, emit `events`, return `evs`.
 
 ### 2.4 Project template (`templates/project/`) and the "small" tier
 Files: `project.godot`, `harness.toml`, `autoloads/scene_manager.gd`, `.gitignore` (`.godot/`, `.harness/`,
 `addons/gdUnit4/`, `addons/harness/`), `README.md` (<= 30 lines: folder layout and the §2.8 rules).
-`project.godot` keys (tests read them as text):
-| Key | Value |
-|---|---|
-| `config_version` / `config/features` | `5` / `PackedStringArray("4.7")` |
-| `physics/common/physics_ticks_per_second` | `60` |
-| `physics/common/physics_jitter_fix` | `0.0` |
-| `rendering/renderer/rendering_method` (+ `.mobile`) | `"gl_compatibility"` |
-| `display/window/stretch/mode` | `"canvas_items"` |
-| `layer_names/2d_physics/layer_1..6` | `world`, `player`, `enemy`, `hazard`, `pickup`, `trigger` |
-| `[input]` | `move_left`, `move_right`, `move_up`, `move_down`, `jump`, `confirm`, `cancel`, `pause`: physical keys (A/D/W/S + arrows, Space, Enter, Escape, Escape/P) and a joypad event each, written by the engine (ProjectSettings.save) not by hand |
-| `[autoload]` | `Harness`, `Rng`, `CommandBus` (`*res://addons/harness/<snake>.gd`, A5) then `SceneManager="*res://autoloads/scene_manager.gd"` |
+`project.godot` keys (tests read them as text): `config_version=5`, `config/features=PackedStringArray("4.7")`,
+`physics/common/physics_ticks_per_second=60`, `physics/common/physics_jitter_fix=0.0`,
+`rendering/renderer/rendering_method` and `.mobile` = `"gl_compatibility"`, `display/window/stretch/mode=
+"canvas_items"`, `layer_names/2d_physics/layer_1..6` = `world player enemy hazard pickup trigger`; `[input]` actions
+`move_left move_right move_up move_down jump confirm cancel pause`, each with physical keys (A/D/W/S + arrows, Space,
+Enter, Escape, P) and one joypad event, written by the engine (`ProjectSettings.save()` in a scratch run), not by
+hand; `[autoload]` `Harness`, `Rng`, `CommandBus` (`*res://addons/harness/<snake>.gd`, A5) then
+`SceneManager="*res://autoloads/scene_manager.gd"`, so `h sync` leaves the file byte-identical.
 Tier "small" (D5): at most 3 **game** autoloads (SceneManager plus up to 2 single-purpose ones, e.g. Settings,
 Save); the 3 harness autoloads are dormant outside `h run` and do not count. `harness.toml`: `[harness]` with
-`tick_rate = 60`, `sim_dirs = ["res://sim"]`, `test_dir = "res://tests"`, defaults otherwise (C §2.6).
+`tick_rate = 60`, `sim_dirs = ["res://sim"]`, `test_dir = "res://tests"`, no `[lint]` overrides (the sample must
+PASS A3 defaults, incl. `replay_dirs = ["res://"]`).
 ```gdscript
 # autoloads/scene_manager.gd (extends Node; no class_name; P10)
 signal transition_started(path: String)
@@ -186,26 +177,23 @@ class_name MovementTuning extends Resource   # res://tuning/movement_tuning.gd; 
 @export var coyote_time := 0.10 ; @export var buffer_time := 0.10                                     # s
 
 class_name PlayerMotor extends RefCounted    # res://sim/platformer/player_motor.gd (pure, sim scope)
-var tuning: MovementTuning ; var tick_rate: int = 60
-var velocity := Vector2.ZERO ; var ticks_since_floor: int = 0 ; var buffer_left: int = 0
-var rising: bool = false ; var jumps: int = 0 ; var last_jump_coyote := false ; var last_jump_buffered := false
-func gravity() -> float                      # 2 h / t^2 ; fall uses * fall_gravity_mult
-func jump_velocity() -> float                # -2 h / t
-func coyote_ticks() -> int                   # roundi(coyote_time * tick_rate)   (6 at 60 Hz)
-func buffer_ticks() -> int                   # roundi(buffer_time * tick_rate)   (6 at 60 Hz)
+var tuning: MovementTuning ; var tick_rate: int = 60 ; var velocity := Vector2.ZERO ; var jumps: int = 0
+var ticks_since_floor: int = 0 ; var buffer_left: int = 0 ; var rising := false ; var last_jump_coyote := false
+func gravity() -> float ; func jump_velocity() -> float   # 2h/t^2 (fall: * fall_gravity_mult) ; -2h/t
+func coyote_ticks() -> int ; func buffer_ticks() -> int   # roundi(<time> * tick_rate): 6 and 6 at 60 Hz
 func step(axis: float, jump_pressed: bool, jump_held: bool, on_floor: bool) -> Vector2
     # one physics tick BEFORE move_and_slide: horizontal accel/decel toward axis*max_speed; coyote: a jump is
     # allowed while ticks_since_floor <= coyote_ticks(); buffer: a press is remembered buffer_ticks(); jump cut:
     # releasing while rising multiplies velocity.y by jump_cut_mult once; half the tick's gravity is applied here
-    # (midpoint integration, §3.3); returns the velocity to move with
+    # (midpoint integration, §3.2); returns the velocity to move with
 func post_move(actual_velocity: Vector2, on_floor: bool) -> void   # second gravity half; contact feedback
 func to_dict() -> Dictionary
 ```
 `Player extends CharacterBody2D` (`res://game/platformer/player.gd`, class_name `Player`): `@export var tuning:
 MovementTuning`; `_physics_process`: axis from `Input.get_axis("move_left", "move_right")`, jump from
 `is_action_just_pressed/pressed("jump")`, `velocity = motor.step(...)`, `move_and_slide()`, `motor.post_move(...)`;
-registers Harness entity `"player"`; `_harness_state()` = `{position, velocity, on_floor, jumps, apex_px,
-coyote_jumps, buffered_jumps}` where `apex_px` = takeoff y minus the minimum y of the last jump (float px).
+registers Harness entity `"player"`; `_harness_state()` = `{position, velocity, on_floor, jumps, apex_px, dx,
+coyote_jumps, buffered_jumps}`; `apex_px` = takeoff y minus min y of the last jump, `dx` = x minus spawn x (px).
 Events: `jumped {coyote, buffered}`, `landed`. `PlatformerGame` (`res://game/platformer/platformer_game.gd`,
 root of `res://scenes/platformer/platformer_game.tscn` with `%LevelSlot`, `%Fade` ColorRect on a CanvasLayer):
 calls `SceneManager.set_slot(%LevelSlot)`, `goto("res://scenes/platformer/level_1.tscn")`; on
@@ -223,8 +211,8 @@ Data files (hand-written property lines are allowed for data `.tres`, §8.3 D-3)
 (MovementTuning, the defaults above), `res://tuning/feel_targets.tres` (A7 FeelTargets schema; v0 metrics and
 ranges: apex 44-52 px, time to apex 0.35-0.41 s, ticks to max speed 3-8, coyote 5-7 ticks, buffer 5-7 ticks;
 `approved_by = "provisional-default"`; metric names per A7, §8.4).
-Menu: `res://scenes/main.tscn` (main scene; root `Control` + `main.gd`, two Buttons "Platformer"/"Tactics" whose
-`pressed` -> `SceneManager.goto`; `%Slot` for the game scenes).
+Menu: `res://scenes/main.tscn` (main scene; `Control` + `main.gd`, `%Slot`, Buttons "Platformer"/"Tactics" ->
+`SceneManager.goto`). The innermost active game scene owns the slot (`set_slot` replaces it); no return to menu in v0.
 
 ### 2.8 Decision rules: when to split (text A8 puts in the CLAUDE.md Game-architecture block, <= 12 lines)
 1. Turn-based or discrete rules (board, cards, tactics, inventory, economy, quests, dialogue state): full split.
@@ -234,8 +222,8 @@ Menu: `res://scenes/main.tscn` (main scene; root `Control` + `main.gd`, two Butt
    `res://sim`, tunables in a `.tres`; verify with motor tests + `h run` scenarios on the real scene.
 3. Real-time without engine collisions (waves, economy, bullet patterns, RTS orders): split with a fixed-tick
    `apply(world, {"type": "tick", "inputs": ...})`; the view interpolates.
-4. Split from day one if the game needs any of: save mid-match, undo, previews, AI lookahead, replays, netcode.
-   Retrofitting determinism is the Monster Train lesson; for a throwaway prototype rule 2 is enough.
+4. Split from day one if the game needs save mid-match, undo, previews, AI lookahead, replays or netcode
+   (retrofitting determinism is the Monster Train lesson).
 5. Never in sim: UI layout, camera, particles, audio, animation, scene changes. If rule code wants `get_tree()`,
    a signal from a node or a NodePath, it is in the wrong layer.
 6. One iteration order (`ids()`), one RNG (`world.rng`, saved), int ids, no floats in turn-based state.
@@ -253,16 +241,15 @@ Menu: `res://scenes/main.tscn` (main scene; root `Control` + `main.gd`, two Butt
 - B9b: `sample/game/{main.gd,tactics/{tactics_host,tactics_view,unit_view}.gd,platformer/{player,platformer_game,
   level,exit,hazard}.gd}`, `sample/specs/<scene stem>.scene.json` (one per scene: main, tactics, unit_view,
   platformer_game, player, level_1, level_2), the generated `sample/scenes/**.tscn`, `sample/tuning/feel_targets.tres`,
-  `sample/scenarios/**` (§3.4) + `sample/scenarios/tactics/autoplay.golden.json` (recorded with `h run --record` on
+  `sample/scenarios/**` (§3.3) + `sample/scenarios/tactics/autoplay.golden.json` (recorded with `h run --record` on
   a temp copy, then copied in), `sample/tests/scenes/{test_tactics_view,test_player_scene,test_scene_manager}.gd`,
   `sample/baselines/**` via `h baseline propose` (A6), `sample/README.md` (<= 40 lines).
-- Never committed: `sample/.godot/`, `sample/.harness/`, `sample/addons/{harness,gdUnit4}/` (synced). `.uid`
-  files are committed (B5).
+- Not committed: `sample/{.godot,.harness,addons/harness,addons/gdUnit4}/`; `.uid` files are committed (B5).
 - Hook lines (exact text; faults in §5 replace them; each occurs once in its file):
-  `sim/tactics/tactics_world.gd`: `var debug_note: String = "" # HOOK-SIM-FIELD` (not in to_dict);
+  `sim/tactics/tactics_world.gd`: `var debug_note: String = "" # HOOK-SIM-FIELD` (not in to_dict) and
+  `	var st = SimCodec.int_dict_of(d, "stats", err) # HOOK-STATS-LOAD`;
   `sim/tactics/tactics_rules.gd`: `	pass # HOOK-RULES-APPLY` (first line of `_execute`) and
   `	var bonus := world.rng.randi_range(0, 1) # HOOK-DAMAGE-RNG`;
-  `sim/tactics/tactics_world.gd`: `	var st = SimCodec.int_dict_of(d, "stats", err) # HOOK-STATS-LOAD`;
   `sim/core/sim_world.gd` (and the template): `		"version": schema_version(), # HOOK-VERSION`;
   `view/core/sim_view.gd` (and the template): `	_reconcile() # HOOK-VIEW-RECONCILE`;
   `game/tactics/tactics_view.gd`: `	pass # HOOK-VIEW-EVENT` (first line of `_on_event`);
@@ -276,8 +263,7 @@ Menu: `res://scenes/main.tscn` (main scene; root `Control` + `main.gd`, two Butt
 - **Codec**: `to_dict` writes ints as ints, cells as `[x, y]`, RNG seed/state as decimal strings; `load_dict`
   reads only through `SimCodec` (strict int: float allowed only when integral) and collects errors into
   `last_error`; it never partially loads (build into locals, then assign).
-- **Hash**: sorted-key full-precision JSON (A5 §2.4 uses the same normalisation), so `state_hash()` equals what A5
-  hashes for entity `world` modulo A5's own wrapping.
+- **Hash**: sorted-key full-precision JSON, the same normalisation A5 §2.4 hashes for entity `world`.
 - **Reconcile / snap-to-end**: `_on_event` only starts physics-mode tweens; `_reconcile()` (end of every
   `apply_events`) creates, frees and `sync_from()`s views from `world`, killing tweens of freed views. So
   `view_digest()` after `finish_animations()` is a pure function of `world`, and equals a fresh `rebuild()`.
@@ -286,25 +272,20 @@ Menu: `res://scenes/main.tscn` (main scene; root `Control` + `main.gd`, two Butt
 - **SceneManager**: state machine idle -> fading_out (fade_ticks) -> swap (free old child, add new, 1 tick) ->
   fading_in (fade_ticks) -> idle; on idle, if `_pending` non-empty, start it. Ticks counted in `_physics_process`;
   the fade tween is physics-mode; `stats().dropped` stays 0 by construction.
-- **Input glue**: only named actions; no `ui_*`, no `InputMap.add_action`, no `KEY_*` outside remap code (A3).
 
-### 3.3 Sample `harness.toml` and autoloads
-`[harness]` as §2.4; no `[lint]` overrides (sample must PASS A3 defaults, incl. `replay_dirs = ["res://"]`). The
-sample's `project.godot` already declares all four autoloads, so `h sync` leaves it byte-identical.
-
-### 3.4 Required scenarios (`sample/scenarios/`, A5 schema; required asserts; builders may add more)
+### 3.3 Required scenarios (`sample/scenarios/`, A5 schema; required asserts; builders may add more)
 | File | Scene, seed, ticks | Inputs / commands | Required asserts |
 |---|---|---|---|
-| `platformer/run.json` | platformer_game, 1, 120 | `move_right` strength 1 from tick 31 (after fade-in) | `player.velocity.x` lt 219 @tick 32; ge 219.9 @tick 40; `player.position.x` gt <Spawn x + 100> @tick 90 |
+| `platformer/run.json` | platformer_game, 1, 120 | `move_right` strength 1 from tick 31 (player spawned by then) | `player.velocity.x` lt 219 @tick 32; ge 219.9 @tick 40; `player.dx` gt 100 @tick 90 |
 | `platformer/jump.json` | platformer_game, 1, 150 | `jump` at 40 hold 40 | `player.apex_px` between [46, 50] at_end; `player.jumps` eq 1 at_end |
 | `platformer/tap.json` | same | `jump` at 40 hold 2 | `player.apex_px` lt 30 at_end; `player.jumps` eq 1 |
-| `platformer/level_complete.json` | platformer_game, 1, 900 | `move_right` from 31 to end; `jump` at the ledge as needed | `game.level` eq `"level_2"` at_end; `game.sm.dropped` eq 0 |
-| `flow/fade_request.json` | platformer_game, 1, 120 | command `goto_level` value `"level_2"` at tick 3 (inside the first fade-in) | `game.level` eq `"level_2"` at_end; `game.sm.completed` eq 2 at_end |
-| `tactics/moves.json` | tactics, 7, 6 | `move` t1 -> [2,1] @2; `move` t4 -> [6,2] @3 (not your turn); `attack` t1 -> 4 @4 (not adjacent) | `world.things.t1.cell` eq [2, 1] at_end; metric `events.rejected` eq 2; metric `events.unit_moved` eq 1 |
+| `platformer/level_complete.json` | platformer_game, 1, 900 | `move_right` from 31 to end (the ledge is a drop) | `game.level` eq `"level_2"` at_end; `game.sm.dropped` eq 0 |
+| `flow/fade_request.json` | platformer_game, 1, 120 | command `goto_level` value `"level_2"` at tick 3 (inside the first transition) | `game.level` eq `"level_2"` at_end; `game.sm.completed` eq 2 at_end |
+| `tactics/moves.json` | tactics, 7, 6 | `move` target "1" value [2,1] @2; `move` "4" -> [6,2] @3 (not_your_turn); `attack` "2" value 4 @4 (not_adjacent) | `world.things.t1.cell` eq [2, 1] at_end; metric `events.rejected` eq 2; metric `events.unit_moved` eq 1 |
 | `tactics/autoplay.json` | tactics, 42, 3 | `autoplay` value 1000 @1; `snapshot_roundtrip` @2 | `world.tick` eq 1000 at_end; metric `events.snapshot_roundtrip` eq 1; golden committed |
 Every scenario passes `h run --twice`; `autoplay.golden.json` matches on the recording machine class (B7).
 
-### 3.5 Spikes ([Run], scratchpad `a9/proj`, prototype sim of §2.6 in plain RefCounted GDScript)
+### 3.4 Spikes ([Run], scratchpad `a9/proj`, prototype sim of §2.6 in plain RefCounted GDScript)
 - **S1 1000 turns.** `ai_turn` x1000 on an 8x8 grid, 8 units, waves: `HASH1000 17374af6df26de46 events=3480
   next_id=230`, identical in 3 separate processes; seed 43 -> `3a42422d84c93279`; 17-37 ms per 1000 turns;
   100 clones via `from_dict(to_dict())` 2-4 ms.
@@ -318,9 +299,8 @@ Every scenario passes `h run --twice`; `autoplay.golden.json` matches on the rec
 - **S4 apex vs integration** (h = 48 px, t = 0.38 s): semi-implicit Euler apex 43.88 / 45.91 / 46.95 px at
   30/60/120 Hz; midpoint 47.94 / 48.00 / 48.00 px, apex tick 12 / 23 / 46.
 - **S5 .tres header.** `ResourceSaver.save` of a class_name Resource writes `[gd_resource type="Resource"
-  script_class="MovementTuning" format=3]`, one `[ext_resource type="Script" path=... id="1_x"]`, `[resource]`,
-  `script = ExtResource("1_x")`, then only non-default props. `ClassDB.class_exists("MovementTuning")` is false, so
-  A2's `$new` cannot build script-class resources (hence separate `.tres` + `$res`).
+  script_class="MovementTuning" format=3]`, one Script `[ext_resource]`, `[resource]`, `script = ...`, non-default
+  props only. `ClassDB.class_exists("MovementTuning")` is false, so A2 `$new` cannot build it (hence `.tres` + `$res`).
 
 ## 4. Acceptance criteria
 Layers: [gd] = gdUnit4 suites T9 writes in `tests/gd/a9/`, copied into a B3 copy of `sample/` at
@@ -343,7 +323,7 @@ reading files. "copy" = `sample/` without `.godot/ .harness/ addons/harness/ add
 - AC-09.6 [contract] `h test` on a copy (sample's own tests): rc 0, >= 4 sim suites and >= 3 scene suites ran,
   >= 30 tests, 0 orphans, wall <= 90 s.
 - AC-09.7 [contract] `h run res://scenarios/ --twice` on a copy: rc 0, `PASS run 7/7 scenarios passed` (or more),
-  each §3.4 required assert present in its file (JSON read by the test) and passing in `asserts.json`;
+  each §3.3 required assert present in its file (JSON read by the test) and passing in `asserts.json`;
   `tactics/autoplay.json` stat `golden: match`. Wall <= 90 s.
 - AC-09.8 [gd] `TacticsWorld.create(42)`, `autoplay` 1000 -> `tick == 1000`; a second world with seed 42 gives the
   same `state_hash()`; seed 43 differs; the run takes <= 2 s inside the test.
@@ -355,8 +335,7 @@ reading files. "copy" = `sample/` without `.godot/ .harness/ addons/harness/ add
 - AC-09.11 [gd] Strict load: text with `"hp": 3.5` -> `ERR_INVALID_DATA`, `last_error` contains `hp`; missing
   `version` -> `ERR_INVALID_DATA`; `version` 2 (newer) -> `ERR_INVALID_DATA`; `schema` `"other"` -> same;
   `"hp": 3.0` loads as int 3; a failed load leaves the target world unchanged (hash before == after).
-- AC-09.12 [gd] Migration: a TacticsWorld subclass in the test with `schema_version() 2` and a `migrate` that adds
-  a field loads a v1 text; `to_dict().version == 2`.
+- AC-09.12 [gd] Migration: a test subclass with `schema_version() 2` and a `migrate` loads a v1 text; version 2.
 - AC-09.13 [gd] Rules: each rejection reason of §2.6 (one command each from `create(7)`) returns exactly one
   `rejected` event with that reason and leaves `state_hash()` unchanged; a legal move emits `unit_moved` with
   `to`; attack damage in {3, 4}; a kill emits `unit_died`, despawns, and the id is never reused (next spawn id =
@@ -365,8 +344,7 @@ reading files. "copy" = `sample/` without `.godot/ .harness/ addons/harness/ add
   `finish_animations()`; world hash equal to that of a headless clone that ran the same commands without a view
   (the view never mutates); a second `TacticsView` bound to `world.clone()` has `view_digest()` equal to the live
   one; after `host.load_from()` of an earlier save the digest equals a fresh rebuild.
-- AC-09.15 [gd] `apply_events([])` then `_reconcile` behaviour: freeing a unit in the world without any event and
-  calling `apply_events([])` removes its view (snap-to-end covers missed events).
+- AC-09.15 [gd] Snap-to-end: despawning a unit in the world without an event, then `apply_events([])`, removes its view.
 - AC-09.16 [gd] Motor, pure: apex over free air (`post_move(v, false)`) within 1 px of `jump_height` at 30, 60 and
   120 Hz; time to apex = `roundi(time_to_apex * rate) +/- 1` ticks; ticks from 0 to `max_speed` on floor =
   `ceili(accel_time * 60) +/- 1` and > 1; a jump press at k ticks after leaving the floor is accepted for
@@ -380,16 +358,12 @@ reading files. "copy" = `sample/` without `.godot/ .harness/ addons/harness/ add
 - AC-09.19 [contract] Template smoke: copy `templates/project/` to a temp dir, copy `templates/sim_view/sim` to
   `res://sim/core` and `view` to `res://view/core`, `h sync`, `h check`: rc 0; `h lint`: rc 0 with 0
   `lint.sim-node` and 0 `lint.det-*` findings.
-- AC-09.20 [contract] Seeded-fault sanity: `h selftest --area A9` -> rc 0, all must faults CAUGHT, CLEAN-A9-*
-  PASS, wall <= 600 s. [slow]
-- AC-09.21 [e2e] Fresh clone: `tools/bootstrap.sh` then `h check --project sample`, `h test --project sample`,
-  `h run --project sample sample/scenarios/ --twice` all rc 0 (bootstrap is the one allowed writer of
-  `sample/.godot`), and `git status --porcelain sample` is empty afterwards.
+- AC-09.20 [contract, slow] `h selftest --area A9`: rc 0, must faults CAUGHT, CLEAN-A9-* PASS, <= 600 s.
+- AC-09.21 [e2e] In a fresh clone under `$HARNESS_TMP`: `tools/bootstrap.sh`, then `h check`, `h test`, `h run
+  sample/scenarios/ --twice` with `--project sample` all rc 0; `git status --porcelain sample` empty afterwards.
 - AC-09.22 [contract, xvfb] `h shot` of `tactics.tscn` and `platformer_game.tscn` at tick 60 compared with
   `sample/baselines/` (A6 semantics) -> PASS; baselines' meta `approved_by` is `provisional-default`. `h trace
   res://scenarios/platformer/jump.json` (A7) reports every metric of feel_targets.tres and PASSes.
-- AC-09.23 [data] `sample/` and `templates/` hold no `.tscn` without a spec (AC-09.4), no `get_tree()`/`Node` use
-  under `res://sim` (A3 covers it; this AC checks `h lint` output has no `lint.sim-node`), and game autoloads <= 3.
 Untestable automatically (orchestrator review): the §2.8 text is accurate; the sample "reads well" as an example.
 
 ## 5. Seeded faults (`fixture = "@sample"`, §8.3 D-1; `must` unless noted; replace ops on §3.1 hook lines)
@@ -415,14 +389,12 @@ Untestable automatically (orchestrator review): the §2.8 text is accurate; the 
 accept 3.5 (AC-09.11 red); drop `rng.state` from `to_dict` (AC-09.9, 10); store `"tick"` as float (AC-09.10).
 
 ## 6. Fixtures needed (T9)
-- No new project fixture: the sample is the fixture (D-1). T9 writes `tests/gd/a9/*.gd` (copied into the sample
-  copy by a pytest helper in `tests/contract/a9/conftest.py`), `tests/contract/a9/`, `tests/e2e/a9/`, the
-  `tests/fixtures/a9/sim_snapshot.schema.json` (§2.5) and the fault suites under `selftest/faults/FAULT-A9-*/files/`.
-- Text fixtures in `tests/fixtures/a9/`: `snap_v1.json` (valid create(7) snapshot, hand-derived from §2.6: ids 1-6,
-  cells, hp 10, rng seed "7"; the state string is taken from a run, so AC-09.11 uses a loaded-then-edited copy
-  instead), `snap_float_hp.json`, `snap_no_version.json`, `snap_v2.json`, `snap_other_schema.json` (edits of a text
-  saved in-test are preferred; files only where the test needs a literal).
-- Until B9a lands, the [gd] and [contract] tests are red with "no such class"/missing sample (the red check).
+- No project fixture: the sample is the fixture (D-1). T9 writes `tests/gd/a9/*.gd` (a helper in
+  `tests/contract/a9/conftest.py` copies the sample to `$HARNESS_TMP` and the suites to `res://tests/a9/`),
+  `tests/contract/a9/`, `tests/e2e/a9/`, `tests/fixtures/a9/sim_snapshot.schema.json` (§2.5) and the fault
+  suites in `selftest/faults/FAULT-A9-*/files/`. Bad snapshots (float hp, no version, v2, other schema) are made
+  in-test by editing a text saved from `create(7)`, since the RNG state string is not known in advance.
+- Until B9a lands, [gd]/[contract] tests are red with "no such class"/missing sample (the red check).
 
 ## 7. Build order
 B9a (parallel with B5/B6, needs A1/A3/A4 green):
@@ -448,8 +420,7 @@ screen (P14), audio (P24), pause menu (P12), recording human play into scenarios
 1. A5 open question 4: SceneManager swaps children of a slot instead of `change_scene_to_*`, so the runner's
    `current_scene` never changes; not yet run under `scenario.gd` (S-spike pending for B9b step 6).
 2. `Dictionary[int, SimThing]` typed dictionaries with subclasses (`Unit`) assigned: assumed fine on 4.7 [U].
-3. Golden `autoplay.golden.json` holds only ints/strings, so it should match across machines (exact), unlike
-   physics goldens; untested off this container.
+3. `autoplay.golden.json` holds only ints/strings, so it should match across machines; untested elsewhere.
 4. gdUnit4 `scene_runner` frame stepping vs physics ticks for AC-09.18 (A4 K12 says action press works headless).
 5. Whether A6 can store a `provisional-default` baseline without the human `approve` step (AC-09.22).
 ### 8.3 Deviations requested (spec reviewer)
@@ -457,14 +428,11 @@ screen (P14), audio (P24), pause menu (P12), recording human play into scenarios
   `.harness/`, `addons/harness/`, `addons/gdUnit4/`). Reason: the sample is the dogfood target; a duplicate fixture
   would drift. Fallback: the orchestrator snapshots `sample/` into `tests/fixtures/projects/sample_snapshot/` at
   lock time (then faults must be re-locked whenever the sample changes).
-- D-2 [gd] suites live in `tests/gd/a9/` but run inside a sample copy at `res://tests/a9/` (copied by the test
-  helper), since they need the sample's classes.
-- D-3 Data-only `.tres` (tuning, feel targets) may be written as text in the §3.5 S5 shape (header + one script
+- D-2 [gd] suites live in `tests/gd/a9/` but run inside a sample copy at `res://tests/a9/` (need sample classes).
+- D-3 Data-only `.tres` (tuning, feel targets) may be written as text in the §3.4 S5 shape (header + one script
   ext_resource + `[resource]` property lines); only scenes must come from scene-gen. A8's `.tscn/.tres` hook warns
   once on creation; editing property lines is the normal tuning workflow (A7).
-- D-4 Plan §7 "1,000-turn seeded headless run" is satisfied in-process (AC-09.8) and through `h run` (AC-09.7);
-  "Rebuilding the view from a snapshot matches the live view digest" uses `SimView.view_digest()`, not `h digest`
-  (that one digests files, not live trees).
+- D-4 Plan "view digest" = `SimView.view_digest()` (live tree), not `h digest` (files).
 ### 8.4 Assumptions about other areas
 - A5: `Harness.register("world", <RefCounted>)` keeps the object until unregister; A5 path segments `.t3` work on
   dict keys; `CommandBus.handle` called again for a type replaces the handler (SimHost re-`start` after a scene
@@ -472,13 +440,10 @@ screen (P14), audio (P24), pause menu (P12), recording human play into scenarios
   A5 adds `unhandle(type)` and SimHost calls it on `tree_exiting`.
 - A3: `lint.sim-node`, `lint.det-*`, `lint.raw-keycode`, `lint.input-action` as in 03 §3.3; `rng_files` default
   exempts nothing in the sample (the sim uses `world.rng`, an instance RNG, which A3 does not flag).
-- A2: `$res` to a script-class `.tres` and `$node` exports (Host.view) work; `--force` keeps uids; specs can save
-  under `res://scenes/**`.
-- A4: `h test <dir>` installs gdUnit4 into a fresh copy; scene suites can `scene_runner` a scene that uses autoloads.
-- A6: `h shot <scene> --tick N` and a baseline store under `<project>/baselines/`; provisional baselines allowed.
-- A7: FeelTargets `.tres` schema and metric names; A9 needs names for apex px, time to apex, accel ticks, coyote
-  ticks, buffer ticks; `h trace` reads `res://tuning/feel_targets.tres` by default or via a flag.
+- A2: `$res` to a script-class `.tres` and `$node` exports (Host.view) work; `--force` keeps uids. A4: `h test
+  <dir>` installs gdUnit4 into a fresh copy; `scene_runner` works on scenes that use autoloads.
+- A6: `h shot <scene> --tick N`, baselines under `<project>/baselines/`. A7: FeelTargets `.tres` schema and names
+  for apex px, time to apex, accel ticks, coyote and buffer ticks; `h trace` can read `res://tuning/feel_targets.tres`.
 - A8: `h init` copies `templates/project/` when the target has no `project.godot` and `templates/sim_view/` on
   request; the CLAUDE.md block quotes §2.8; skills cite the sample files as examples.
-- Plan defaults: D1 GDScript only, D2 two 2D scenes, D4 targets/baselines provisional until a human approves, D5
-  small tier, B5 commit `.uid`, B7 hash-then-tolerance.
+- Plan defaults D1, D2, D4 (provisional until a human approves), D5, B5 (commit `.uid`), B7.
