@@ -1,0 +1,7 @@
+{
+ "save": "res://scenes/child.tscn",
+ "root": {
+  "name": "Child",
+  "type": "Node2D"
+ }
+}

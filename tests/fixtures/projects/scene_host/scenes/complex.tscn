@@ -1,0 +1,33 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/hero.gd" id="1_a"]
+[ext_resource type="PackedScene" path="res://scenes/child.tscn" id="2_b"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_s"]
+size = Vector2(10, 20)
+
+[node name="Complex" type="Node2D"]
+script = ExtResource("1_a")
+
+[node name="A" parent="." instance=ExtResource("2_b")]
+position = Vector2(100, 0)
+
+[node name="Sprite" parent="A" index="0"]
+position = Vector2(50, 50)
+
+[node name="Extra" type="Marker2D" parent="A/Inner"]
+
+[node name="B" type="Node2D" parent="." node_paths=PackedStringArray("target") groups=["g1", "g2"]]
+script = ExtResource("1_a")
+target = NodePath("../A")
+
+[node name="Area" type="Area2D" parent="." groups=["zone"]]
+collision_layer = 3
+
+[node name="Shape" type="CollisionShape2D" parent="Area"]
+shape = SubResource("RectangleShape2D_s")
+
+[connection signal="hit" from="A" to="B" method="_on_hit"]
+[connection signal="area_entered" from="Area" to="." method="_on_hit" flags=3]
+
+[editable path="A"]

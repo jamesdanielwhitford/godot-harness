@@ -1,0 +1,12 @@
+id = "FAULT-A2-11"
+area = "A2"
+title = "spec script whose _init loops"
+fixture = "scene_host"
+severity = "must"
+source = "02_scene.md section 5"
+apply = [
+  {op = "write", path = "scripts/hang.gd", from = "files/hang.gd"},
+  {op = "write", path = "harness.toml", text = "[timeouts]\nrunner = 5\n"}
+]
+run = {verb = "scene-gen", args = ["{fault_dir}/files/s.scene.json"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[harness\.hang\]', '^saved: none'], not_regex = [], max_seconds = 40}

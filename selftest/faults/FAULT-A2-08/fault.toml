@@ -1,0 +1,11 @@
+id = "FAULT-A2-08"
+area = "A2"
+title = "digest of a bad parent= scene (r1_4 c10)"
+fixture = "scene_host"
+severity = "must"
+source = "02_scene.md section 5"
+apply = [
+  {op = "write", path = "broken/bad_parent.tscn", from = "files/bad_parent.tscn"}
+]
+run = {verb = "digest", args = ["res://broken/bad_parent.tscn"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['!vanished', '\[scene\.vanished-node\]'], not_regex = [], max_seconds = 60}

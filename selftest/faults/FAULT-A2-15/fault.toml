@@ -1,0 +1,11 @@
+id = "FAULT-A2-15"
+area = "A2"
+title = "digest of a scene instancing a missing scene (r1_4 c23)"
+fixture = "scene_host"
+severity = "nice"
+source = "02_scene.md section 5"
+apply = [
+  {op = "write", path = "broken/missing_inst.tscn", from = "files/missing_inst.tscn"}
+]
+run = {verb = "digest", args = ["res://broken/missing_inst.tscn"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['godot\.(load-failed|error)'], not_regex = [], max_seconds = 60}

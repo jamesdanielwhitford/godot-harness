@@ -1,0 +1,9 @@
+id = "FAULT-A2-12"
+area = "A2"
+title = "unknown op move_node"
+fixture = "scene_host"
+severity = "must"
+source = "02_scene.md section 5"
+apply = []
+run = {verb = "scene-edit", args = ["res://scenes/child.tscn", "{fault_dir}/files/ops.json"], env = {}, no_project = false}
+expect = {rc = 2, verdict = "ERROR", regex = ['\[scene\.spec-schema\]'], not_regex = [], max_seconds = 60}

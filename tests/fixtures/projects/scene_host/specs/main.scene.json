@@ -1,0 +1,4 @@
+{"save":"res://gen/main.tscn","root":{"name":"Main","type":"Node2D","children":[
+ {"name":"A","instance":"res://gen/child.tscn","props":{"position":{"$var":"Vector2(100, 0)"}}},
+ {"name":"B","type":"Node2D","script":"res://scripts/hero.gd","groups":["g1","g2"],"props":{"target":{"$node":"A"}}}]},
+ "connections":[{"from":"A","signal":"hit","to":"B","method":"_on_hit"}]}

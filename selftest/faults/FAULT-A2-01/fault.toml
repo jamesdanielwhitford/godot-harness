@@ -1,0 +1,9 @@
+id = "FAULT-A2-01"
+area = "A2"
+title = "spec root prop positoin"
+fixture = "scene_host"
+severity = "must"
+source = "02_scene.md section 5"
+apply = []
+run = {verb = "scene-gen", args = ["{fault_dir}/files/s.scene.json"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[scene\.unknown-property\].*hint: position', '^saved: none'], not_regex = [], max_seconds = 60}

@@ -1,0 +1,9 @@
+id = "CLEAN-A2-02"
+area = "A2"
+title = "scene-edit with an empty ops list"
+fixture = "scene_host"
+severity = "must"
+source = "02_scene.md section 5"
+apply = []
+run = {verb = "scene-edit", args = ["res://scenes/complex.tscn", "{fault_dir}/files/ops.json"], env = {}, no_project = false}
+expect = {rc = 0, verdict = "PASS", regex = [], not_regex = [], max_seconds = 60}

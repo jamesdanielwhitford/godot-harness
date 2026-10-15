@@ -1,0 +1,13 @@
+{
+ "save": "res://gen/f.tscn",
+ "root": {
+  "name": "R",
+  "type": "Node2D",
+  "children": [
+   {
+    "name": "X",
+    "type": "Spirte2D"
+   }
+  ]
+ }
+}

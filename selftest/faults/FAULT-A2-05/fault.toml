@@ -1,0 +1,9 @@
+id = "FAULT-A2-05"
+area = "A2"
+title = "string for a Node export"
+fixture = "scene_host"
+severity = "must"
+source = "02_scene.md section 5"
+apply = []
+run = {verb = "scene-gen", args = ["{fault_dir}/files/s.scene.json"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[scene\.bad-value\].*\$node', '^saved: none'], not_regex = [], max_seconds = 60}

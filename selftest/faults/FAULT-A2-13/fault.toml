@@ -1,0 +1,11 @@
+id = "FAULT-A2-13"
+area = "A2"
+title = "digest of a scene with two roots (r1_4 c13)"
+fixture = "scene_host"
+severity = "must"
+source = "02_scene.md section 5"
+apply = [
+  {op = "write", path = "broken/two_roots.tscn", from = "files/two_roots.tscn"}
+]
+run = {verb = "digest", args = ["res://broken/two_roots.tscn"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[scene\.load-failed\]'], not_regex = [], max_seconds = 60}

@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/child.tscn" id="1_a"]
+
+[node name="Main" type="Node2D"]
+
+[node name="A" parent="." instance=ExtResource("1_a")]
+
+[node name="Sprite" parent="A" index="0"]
+position = Vector2(50, 50)
+
+[node name="Extra" type="Marker2D" parent="A/Inner"]
+
+[editable path="A"]

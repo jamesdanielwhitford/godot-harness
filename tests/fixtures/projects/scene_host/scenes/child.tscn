@@ -1,0 +1,13 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/hero.gd" id="1_a"]
+
+[node name="Child" type="Node2D"]
+script = ExtResource("1_a")
+speed = 250
+
+[node name="Sprite" type="Sprite2D" parent="."]
+unique_name_in_owner = true
+position = Vector2(5, 6)
+
+[node name="Inner" type="Node2D" parent="." groups=["inside"]]

@@ -1,0 +1,9 @@
+id = "FAULT-A2-02"
+area = "A2"
+title = "spec child type Spirte2D"
+fixture = "scene_host"
+severity = "must"
+source = "02_scene.md section 5"
+apply = []
+run = {verb = "scene-gen", args = ["{fault_dir}/files/s.scene.json"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[scene\.unknown-type\].*Sprite2D', '^saved: none'], not_regex = [], max_seconds = 60}

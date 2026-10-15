@@ -1,0 +1,12 @@
+[gd_scene format=3 uid="uid://dk3w2h5n7ra4q"]
+
+[ext_resource type="Script" uid="uid://buyc5ao4n1j03" path="res://scripts/hero.gd" id="1_a"]
+
+[node name="EditorStyle" type="Node2D"]
+script = ExtResource("1_a")
+speed = 120
+
+[node name="Sprite" type="Sprite2D" parent="."]
+position = Vector2(3, 4)
+
+[node name="Mark" type="Marker2D" parent="."]

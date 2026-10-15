@@ -1,0 +1,11 @@
+id = "FAULT-A2-09"
+area = "A2"
+title = "scene-edit refuses a scene with a vanished node"
+fixture = "scene_host"
+severity = "must"
+source = "02_scene.md section 5"
+apply = [
+  {op = "write", path = "broken/bad_parent.tscn", from = "files/bad_parent.tscn"}
+]
+run = {verb = "scene-edit", args = ["res://broken/bad_parent.tscn", "{fault_dir}/files/ops.json"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[scene\.broken-input\]'], not_regex = [], max_seconds = 60}

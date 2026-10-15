@@ -1,0 +1,9 @@
+id = "CLEAN-A2-03"
+area = "A2"
+title = "digest --project-summary"
+fixture = "scene_host"
+severity = "must"
+source = "02_scene.md section 5"
+apply = []
+run = {verb = "digest", args = ["--project-summary"], env = {}, no_project = false}
+expect = {rc = 0, verdict = "PASS", regex = ['^autoload: GameState'], not_regex = [], max_seconds = 60}

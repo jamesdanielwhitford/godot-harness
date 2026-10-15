@@ -1,0 +1,13 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/child.tscn" id="1_a"]
+
+[node name="Enemy" instance=ExtResource("1_a")]
+speed = 900
+
+[node name="Sprite" parent="." index="0"]
+position = Vector2(7, 8)
+
+[node name="Own" type="Node2D" parent="Inner" groups=["mine"]]
+
+[connection signal="hit" from="." to="." method="_on_hit"]

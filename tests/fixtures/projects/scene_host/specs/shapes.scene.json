@@ -1,0 +1,3 @@
+{"save":"res://gen/shapes.tscn","root":{"name":"Shapes","type":"Node2D","children":[
+ {"name":"Zone","type":"Area2D","props":{"collision_layer":{"$layers":["world","player"]}},"children":[
+  {"name":"Shape","type":"CollisionShape2D","props":{"shape":{"$new":"RectangleShape2D","props":{"size":{"$var":"Vector2(10, 20)"}}}}}]}]}}

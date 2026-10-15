@@ -1,0 +1,9 @@
+id = "FAULT-A2-14"
+area = "A2"
+title = "scene-gen onto an existing scene without --force"
+fixture = "scene_host"
+severity = "must"
+source = "02_scene.md section 5"
+apply = []
+run = {verb = "scene-gen", args = ["{fault_dir}/files/s.scene.json"], env = {}, no_project = false}
+expect = {rc = 2, verdict = "ERROR", regex = ['exists \(use --force\)'], not_regex = [], max_seconds = 60}

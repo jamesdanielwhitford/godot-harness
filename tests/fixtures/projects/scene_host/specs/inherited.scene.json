@@ -1,0 +1,2 @@
+{"save":"res://gen/inherited.tscn","root":{"name":"Enemy2","instance":"res://scenes/child.tscn","props":{"speed":900}},
+ "overrides":{"Sprite":{"position":{"$var":"Vector2(7, 8)"}}}}

@@ -1,0 +1,9 @@
+id = "FAULT-A2-10"
+area = "A2"
+title = "rename breaks a dependent that overrides the node"
+fixture = "scene_host"
+severity = "must"
+source = "02_scene.md section 5"
+apply = []
+run = {verb = "scene-edit", args = ["res://scenes/child.tscn", "{fault_dir}/files/ops.json"], env = {}, no_project = false}
+expect = {rc = 1, verdict = "FAIL", regex = ['\[scene\.breaks-dependent\].*ov\.tscn', 'rolled back'], not_regex = [], max_seconds = 60}

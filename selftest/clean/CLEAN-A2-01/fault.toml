@@ -1,0 +1,9 @@
+id = "CLEAN-A2-01"
+area = "A2"
+title = "scene-gen of a valid spec to a new path"
+fixture = "scene_host"
+severity = "must"
+source = "02_scene.md section 5"
+apply = []
+run = {verb = "scene-gen", args = ["{project}/specs/child2.scene.json"], env = {}, no_project = false}
+expect = {rc = 0, verdict = "PASS", regex = ['^saved: res://'], not_regex = [], max_seconds = 60}
