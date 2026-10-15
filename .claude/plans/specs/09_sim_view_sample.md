@@ -1,7 +1,7 @@
 # 09 Simulation/view template, project template and sample game (A9, planner P9; absorbs R2.3)
 
-Status: spec v1, 2026-10-15, Opus planner P9. Conforms to `00_contract.md` ("C §x"); deviations in §8.3. Uses verbs
-of 01-05 as specified there and of 06/07 as plan §3.2 defines them. Tags: [Run] verified in §3.4 spikes (Godot
+Status: spec v2, 2026-10-15, Opus planner P9 re-run; applies REVIEW B19 (R-16, R-08, R-36, R-17, R-35) and N11, N17,
+N21. Conforms to `00_contract.md` ("C §x"); deviations in §8.3. Uses verbs of 01-07 as specified there. Tags: [Run] verified in §3.4 spikes (Godot
 4.7.stable.official.5b4e0cb0f, scratchpad `a9/`), [U] unverified.
 
 ## 1. Purpose and failure modes covered
@@ -99,7 +99,9 @@ func start(w: SimWorld, r: SimRules) -> void # Harness.register("world", w); Com
 func submit(cmd: Dictionary) -> Array        # = CommandBus.submit(cmd); input code calls ONLY this
 func save_to(path: String) -> Error ; func load_from(path: String) -> Error   # load: fresh world, swap, bind
 ```
-`_handle(cmd)` = `rules.apply(world, cmd)`, then `view.apply_events(evs)`, emit `events`, return `evs`.
+`_handle(cmd)` = `rules.apply(world, cmd)`, then `view.apply_events(evs)`, emit `events`, return `evs`. A second
+`start()` (or another host) replaces the handlers, since `CommandBus.handle` silently replaces (R-20). On `tree_exiting`
+SimHost calls `CommandBus.unhandle(t)` for each `t` in `rules.commands()` (hygiene; N11).
 
 ### 2.4 Project template (`templates/project/`) and the "small" tier
 Files: `project.godot`, `harness.toml`, `autoloads/scene_manager.gd`, `.gitignore` (`.godot/`, `.harness/`,
@@ -110,12 +112,14 @@ Files: `project.godot`, `harness.toml`, `autoloads/scene_manager.gd`, `.gitignor
 "canvas_items"`, `layer_names/2d_physics/layer_1..6` = `world player enemy hazard pickup trigger`; `[input]` actions
 `move_left move_right move_up move_down jump confirm cancel pause`, each with physical keys (A/D/W/S + arrows, Space,
 Enter, Escape, P) and one joypad event, written by the engine (`ProjectSettings.save()` in a scratch run), not by
-hand; `[autoload]` `Harness`, `Rng`, `CommandBus` (`*res://addons/harness/<snake>.gd`, A5) then
-`SceneManager="*res://autoloads/scene_manager.gd"`, so `h sync` leaves the file byte-identical.
+hand; `[autoload]` `Harness`, `Rng`, `CommandBus`, `Trace` (`*res://addons/harness/<snake>.gd`, A5/A7; the C §2.6
+default set, R-16) then `SceneManager="*res://autoloads/scene_manager.gd"`. `h sync` only appends missing entries
+after the last `[autoload]` key and never reorders, so it leaves this file byte-identical.
 Tier "small" (D5): at most 3 **game** autoloads (SceneManager plus up to 2 single-purpose ones, e.g. Settings,
-Save); the 3 harness autoloads are dormant outside `h run` and do not count. `harness.toml`: `[harness]` with
-`tick_rate = 60`, `sim_dirs = ["res://sim"]`, `test_dir = "res://tests"`, no `[lint]` overrides (the sample must
-PASS A3 defaults, incl. `replay_dirs = ["res://"]`).
+Save); the 4 harness autoloads are dormant outside `h run`/`h trace` and do not count. `harness.toml` (template and
+sample): `[harness]` with `tick_rate = 60`, `sim_dirs = ["res://sim"]`, `test_dir = "res://tests"`, plus
+`[lint]\nreplay_dirs = ["res://"]` (R-08: the A3 default is `[]`; the sample dogfoods strict mode, so idle
+Tween/Timer/AnimationPlayer anywhere warns and AC-09.3's 0 findings means physics-mode everywhere).
 ```gdscript
 # autoloads/scene_manager.gd (extends Node; no class_name; P10)
 signal transition_started(path: String)
@@ -208,9 +212,24 @@ x = Spawn + 320, Exit at x = Spawn + 560. `player.tscn`: CharacterBody2D + playe
 `{"$res": "res://tuning/player_movement.tres"}`), CollisionShape2D (capsule), Polygon2D visual, Camera2D
 (`process_callback` physics).
 Data files (hand-written property lines are allowed for data `.tres`, §8.3 D-3): `res://tuning/player_movement.tres`
-(MovementTuning, the defaults above), `res://tuning/feel_targets.tres` (A7 FeelTargets schema; v0 metrics and
-ranges: apex 44-52 px, time to apex 0.35-0.41 s, ticks to max speed 3-8, coyote 5-7 ticks, buffer 5-7 ticks;
-`approved_by = "provisional-default"`; metric names per A7, §8.4).
+(MovementTuning, the defaults above), `res://tuning/feel_targets.tres` (A7 §2.7 FeelTargets, `tick_rate = 60`; names
+and conventions per A7 §2.4/§2.5, R-17): `jump.apex_px` [44, 52] px, `jump.time_to_apex` [0.35, 0.41] s,
+`run.accel_time` [3, 8] ticks (press tick inclusive, instant = 1), `jump.coyote_window` [5, 7] ticks,
+`jump.buffer_window` [4, 7] ticks (check-then-decrement measures 4, A7 S2); every entry `approved_by =
+"provisional-default"`, `approved_on = ""` (not an approval, D4). B9b may widen a provisional bound to measured +-1
+and records why in build_notes.
+**Feel arena and suite (R-36).** SceneManager spawns the player after the first fade, so A7's Trace cannot bind it
+at row 0 in `platformer_game.tscn`. `res://scenes/platformer/feel_arena.tscn` (spec `sample/specs/feel_arena.scene.json`;
+root Node2D "FeelArena" + a `level_1.tscn` instance "Level" + a `player.tscn` instance "Player" at the same literal
+position as level_1's `%Spawn`; no SceneManager use) is the scene of the probe scenarios `res://feel/{run,jump,tap,
+coyote,buffer,camera}.json` (A5 schema, shapes as A7 §6: coyote walks right off the level_1 ledge, `vars {"t0","k"}`,
+jump at `"$t0+$k"`; buffer on the flat floor, jump at `"$t0-$k"`). `res://feel/player.feel.json` (A7 §2.3):
+`targets` = `res://tuning/feel_targets.tres`; trace `player` -> `Player`, `camera` -> `Player/Camera2D`; probes `run`
+(run.max_speed, run.accel_time, run.decel_time; `params {"action": "move_right"}`), `jump` (jump.apex_px,
+jump.time_to_apex), `tap` (jump.apex_px named `jump.tap_apex_px`), `coyote` (sweep `leave_floor`,
+jump.coyote_window), `buffer` (sweep `land`, jump.buffer_window), `camera` (camera.settle_time, camera.lag_px;
+`params {"action": "move_right"}`). Untargeted measurements are `feel.no-target` info. `res://feel/` is outside
+`res://scenarios/`, so `h run res://scenarios/` does not pick these up (N21).
 Menu: `res://scenes/main.tscn` (main scene; `Control` + `main.gd`, `%Slot`, Buttons "Platformer"/"Tactics" ->
 `SceneManager.goto`). The innermost active game scene owns the slot (`set_slot` replaces it); no return to menu in v0.
 
@@ -240,10 +259,11 @@ Menu: `res://scenes/main.tscn` (main scene; `Control` + `main.gd`, `%Slot`, Butt
   test_snapshot,test_player_motor}.gd`.
 - B9b: `sample/game/{main.gd,tactics/{tactics_host,tactics_view,unit_view}.gd,platformer/{player,platformer_game,
   level,exit,hazard}.gd}`, `sample/specs/<scene stem>.scene.json` (one per scene: main, tactics, unit_view,
-  platformer_game, player, level_1, level_2), the generated `sample/scenes/**.tscn`, `sample/tuning/feel_targets.tres`,
+  platformer_game, player, level_1, level_2, feel_arena), the generated `sample/scenes/**.tscn`,
+  `sample/tuning/feel_targets.tres`, `sample/feel/{run,jump,tap,coyote,buffer,camera}.json`, `sample/feel/player.feel.json`,
   `sample/scenarios/**` (§3.3) + `sample/scenarios/tactics/autoplay.golden.json` (recorded with `h run --record` on
   a temp copy, then copied in), `sample/tests/scenes/{test_tactics_view,test_player_scene,test_scene_manager}.gd`,
-  `sample/baselines/**` via `h baseline propose` (A6), `sample/README.md` (<= 40 lines).
+  `sample/baselines/**` (A6; provisional per R-35, §7 step 8), `sample/README.md` (<= 40 lines).
 - Not committed: `sample/{.godot,.harness,addons/harness,addons/gdUnit4}/`; `.uid` files are committed (B5).
 - Hook lines (exact text; faults in §5 replace them; each occurs once in its file):
   `sim/tactics/tactics_world.gd`: `var debug_note: String = "" # HOOK-SIM-FIELD` (not in to_dict) and
@@ -298,9 +318,8 @@ Every scenario passes `h run --twice`; `autoplay.golden.json` matches on the rec
   as 3; an untyped dict copy keeps `{"kills":2.0}`. `str_to_var(var_to_str(d))` keeps types but is not JSON.
 - **S4 apex vs integration** (h = 48 px, t = 0.38 s): semi-implicit Euler apex 43.88 / 45.91 / 46.95 px at
   30/60/120 Hz; midpoint 47.94 / 48.00 / 48.00 px, apex tick 12 / 23 / 46.
-- **S5 .tres header.** `ResourceSaver.save` of a class_name Resource writes `[gd_resource type="Resource"
-  script_class="MovementTuning" format=3]`, one Script `[ext_resource]`, `[resource]`, `script = ...`, non-default
-  props only. `ClassDB.class_exists("MovementTuning")` is false, so A2 `$new` cannot build it (hence `.tres` + `$res`).
+- **S5 .tres header.** `ResourceSaver.save` of a class_name Resource writes `[gd_resource type="Resource" script_class=
+  "MovementTuning" format=3]`, one Script ext_resource, `[resource]`, non-default props; not in ClassDB (hence `$res`).
 
 ## 4. Acceptance criteria
 Layers: [gd] = gdUnit4 suites T9 writes in `tests/gd/a9/`, copied into a B3 copy of `sample/` at
@@ -311,18 +330,20 @@ reading files. "copy" = `sample/` without `.godot/ .harness/ addons/harness/ add
   {sim,view}/*.gd`; `sample/autoloads/scene_manager.gd` to the template's.
 - AC-09.2 [data] `templates/project/project.godot` and `sample/project.godot` have every §2.4 key/value; the 8
   actions each with >= 1 key and 1 joypad event; no `.gd` under `sample/` (excluding `tests/a9`) contains `"ui_`,
-  `InputMap.add_action` or `KEY_`; `[autoload]` lists exactly Harness, Rng, CommandBus, SceneManager in that order.
+  `InputMap.add_action` or `KEY_`; `[autoload]` lists exactly Harness, Rng, CommandBus, Trace, SceneManager in that
+  order (R-16); both `harness.toml` files contain `[lint]` with `replay_dirs = ["res://"]` (R-08).
 - AC-09.3 [contract] `h check` on a copy: rc 0 PASS (auto-import), wall <= 60 s; `h lint`: rc 0 PASS, 0 findings
   (no warnings either).
 - AC-09.4 [contract] Every `.tscn` under `sample/` (outside `addons/`) has exactly one spec in `sample/specs/`
   whose `save` names it; `h scene-gen --force` of all specs (main last) on a copy: rc 0, every check line `OK`, and
   each regenerated scene's `digest.json` (`h digest --json`) equals that of the committed file.
 - AC-09.5 [contract] `h digest scenes/platformer/player.tscn` rc 0 and no `more:` stat (fits 40 lines);
-  `h digest --project-summary` lists 4 autoloads, 8 actions, `layers-2d_physics: 1=world 2=player 3=enemy 4=hazard
+  `h digest --project-summary` lists 5 autoloads (R-16), 8 actions, `layers-2d_physics: 1=world 2=player 3=enemy 4=hazard
   5=pickup 6=trigger`.
 - AC-09.6 [contract] `h test` on a copy (sample's own tests): rc 0, >= 4 sim suites and >= 3 scene suites ran,
   >= 30 tests, 0 orphans, wall <= 90 s.
-- AC-09.7 [contract] `h run res://scenarios/ --twice` on a copy: rc 0, `PASS run 7/7 scenarios passed` (or more),
+- AC-09.7 [contract] `h run res://scenarios/ --twice` on a copy: rc 0, `PASS run 7/7 scenarios passed` (or more;
+  the `res://feel/` probes of §2.7 are not counted, N21),
   each §3.3 required assert present in its file (JSON read by the test) and passing in `asserts.json`;
   `tactics/autoplay.json` stat `golden: match`. Wall <= 90 s.
 - AC-09.8 [gd] `TacticsWorld.create(42)`, `autoplay` 1000 -> `tick == 1000`; a second world with seed 42 gives the
@@ -361,9 +382,11 @@ reading files. "copy" = `sample/` without `.godot/ .harness/ addons/harness/ add
 - AC-09.20 [contract, slow] `h selftest --area A9`: rc 0, must faults CAUGHT, CLEAN-A9-* PASS, <= 600 s.
 - AC-09.21 [e2e] In a fresh clone under `$HARNESS_TMP`: `tools/bootstrap.sh`, then `h check`, `h test`, `h run
   sample/scenarios/ --twice` with `--project sample` all rc 0; `git status --porcelain sample` empty afterwards.
-- AC-09.22 [contract, xvfb] `h shot` of `tactics.tscn` and `platformer_game.tscn` at tick 60 compared with
-  `sample/baselines/` (A6 semantics) -> PASS; baselines' meta `approved_by` is `provisional-default`. `h trace
-  res://scenarios/platformer/jump.json` (A7) reports every metric of feel_targets.tres and PASSes.
+- AC-09.22 [contract, xvfb] `h shot <scene> --compare` for `tactics.tscn` and `platformer_game.tscn` (baselines at
+  tick 60 under `sample/baselines/`, meta `status: approved`, `approved_by: "provisional-default"`, `approved_at: null`)
+  -> rc 5, 0 errors, every warning `[shot.baseline-unapproved]` (R-35). `h trace res://feel/player.feel.json` -> rc 5,
+  each of the 5 targets measured with an `OK` line, 0 errors, only warning `[feel.unapproved]` (R-36, R-35). rc 5 is
+  the pass here (C §2.4); after G3 approval both give rc 0.
 Untestable automatically (orchestrator review): the §2.8 text is accurate; the sample "reads well" as an example.
 
 ## 5. Seeded faults (`fixture = "@sample"`, §8.3 D-1; `must` unless noted; replace ops on §3.1 hook lines)
@@ -408,7 +431,10 @@ B9b (after B5 and A2 are green):
 5. Specs + `h scene-gen` for unit_view, tactics, player, level_1, level_2, platformer_game, main -> AC-09.3-5.
 6. Game scripts (host, view, player, levels, menu) + scene tests -> AC-09.6, 14, 15, 17, 18; FAULT-A9-02, 03, 10.
 7. Scenarios + golden (`--record` on a temp copy) -> AC-09.7; FAULT-A9-05, 07, 08; CLEAN-A9-01..03.
-8. After B6/B7: baselines (propose), feel_targets.tres, AC-09.22; then AC-09.20, 21, 23.
+8. After B6/B7: feel_arena spec + scene-gen, `feel/*.json` probes, `player.feel.json`, `feel_targets.tres`
+   (R-36, R-17); baselines via `h baseline propose`, then the pair renamed to approved with `approved_by:
+   "provisional-default"`, `approved_at: null`, recorded in build_notes (R-35; not an approval, the human approves
+   at G3) -> AC-09.22; then AC-09.20, 21.
 
 ## 8. Out of scope, open questions, assumptions
 ### 8.1 Out of scope (v0)
@@ -422,28 +448,26 @@ screen (P14), audio (P24), pause menu (P12), recording human play into scenarios
 2. `Dictionary[int, SimThing]` typed dictionaries with subclasses (`Unit`) assigned: assumed fine on 4.7 [U].
 3. `autoplay.golden.json` holds only ints/strings, so it should match across machines; untested elsewhere.
 4. gdUnit4 `scene_runner` frame stepping vs physics ticks for AC-09.18 (A4 K12 says action press works headless).
-5. Whether A6 can store a `provisional-default` baseline without the human `approve` step (AC-09.22).
-### 8.3 Deviations requested (spec reviewer)
-- D-1 fault.toml `fixture = "@sample"` = `$HARNESS_REPO/sample` copied like a fixture (excluding `.godot/`,
-  `.harness/`, `addons/harness/`, `addons/gdUnit4/`). Reason: the sample is the dogfood target; a duplicate fixture
-  would drift. Fallback: the orchestrator snapshots `sample/` into `tests/fixtures/projects/sample_snapshot/` at
-  lock time (then faults must be re-locked whenever the sample changes).
-- D-2 [gd] suites live in `tests/gd/a9/` but run inside a sample copy at `res://tests/a9/` (need sample classes).
-- D-3 Data-only `.tres` (tuning, feel targets) may be written as text in the §3.4 S5 shape (header + one script
+5. Closed by R-35: provisional baselines are proposed then renamed to approved with a non-human `approved_by`;
+   A6 compares them and warns (§7 step 8).
+### 8.3 Deviations (all accepted by REVIEW)
+- D-1 (accepted, R-10) fault.toml `fixture = "@sample"` = `$HARNESS_REPO/sample` copied like a fixture (excluding `.godot/`,
+  `.harness/`, `addons/harness/`, `addons/gdUnit4/`); a duplicate fixture would drift. Sample edits need no re-lock.
+- D-2 (accepted, R-39) [gd] suites live in `tests/gd/a9/` but run inside a sample copy at `res://tests/a9/` (need sample classes).
+- D-3 (accepted, R-48) Data-only `.tres` (tuning, feel targets) may be written as text in the §3.4 S5 shape (header + one script
   ext_resource + `[resource]` property lines); only scenes must come from scene-gen. A8's `.tscn/.tres` hook warns
   once on creation; editing property lines is the normal tuning workflow (A7).
-- D-4 Plan "view digest" = `SimView.view_digest()` (live tree), not `h digest` (files).
+- D-4 (accepted, R-48) Plan "view digest" = `SimView.view_digest()` (live tree), not `h digest` (files).
 ### 8.4 Assumptions about other areas
 - A5: `Harness.register("world", <RefCounted>)` keeps the object until unregister; A5 path segments `.t3` work on
-  dict keys; `CommandBus.handle` called again for a type replaces the handler (SimHost re-`start` after a scene
-  swap); A5 metrics `events.<type>` count command events; `Rng.get_seed()` exists. If `handle` refuses duplicates,
-  A5 adds `unhandle(type)` and SimHost calls it on `tree_exiting`.
+  dict keys; `CommandBus.handle` silently replaces and `unhandle(type)` exists (R-20, §2.3); A5 metrics
+  `events.<type>` count command events; `Rng.get_seed()` exists.
 - A3: `lint.sim-node`, `lint.det-*`, `lint.raw-keycode`, `lint.input-action` as in 03 §3.3; `rng_files` default
   exempts nothing in the sample (the sim uses `world.rng`, an instance RNG, which A3 does not flag).
 - A2: `$res` to a script-class `.tres` and `$node` exports (Host.view) work; `--force` keeps uids. A4: `h test
   <dir>` installs gdUnit4 into a fresh copy; `scene_runner` works on scenes that use autoloads.
-- A6: `h shot <scene> --tick N`, baselines under `<project>/baselines/`. A7: FeelTargets `.tres` schema and names
-  for apex px, time to apex, accel ticks, coyote and buffer ticks; `h trace` can read `res://tuning/feel_targets.tres`.
+- A6: `h shot <scene> --tick N`, baselines under `<project>/baselines/`, one approval predicate with A7 (R-35). A7:
+  FeelTargets per A7 §2.7, metric names per A7 §2.5 (R-17); a suite's `targets` may name `res://tuning/feel_targets.tres`.
 - A8: `h init` copies `templates/project/` when the target has no `project.godot` and `templates/sim_view/` on
   request; the CLAUDE.md block quotes §2.8; skills cite the sample files as examples.
 - Plan defaults D1, D2, D4 (provisional until a human approves), D5, B5 (commit `.uid`), B7.
