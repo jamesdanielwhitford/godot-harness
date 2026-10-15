@@ -201,8 +201,7 @@ never a Node or NodePath)`; the value is replaced by `null` and the run continue
 "meta":{...as state.json},"final_hash":"<64 hex>","chain_hash":"<64 hex>","tol":0.001,
 "checkpoints":[{"tick":k,"hash":"<64 hex>","entities":{...}}]}`. Checkpoints: tick 0, every `golden_every` ticks,
 each dump/assert tick, and `ticks`. Compare (§3.4): stat `golden: match|drift (<n> values within tol)|MISMATCH|stale|
-none|skipped (<why>)`. Goldens are regression records, not human judgements (D4 does not apply; A8 may still
-guard `--force`).
+none|skipped (<why>)`. Goldens are regression records, not human judgements (D4 does not apply).
 
 ### 2.6 Config (`harness.toml`, `CONFIG_TABLE = "run"`)
 `[run] golden_tol = 0.001` (float > 0), `hash_every = 1` (int >= 1), `required_autoloads = ["Harness","Rng",
@@ -214,10 +213,8 @@ guard `--force`).
 - `tools/harness/harness/verbs/run.py` (CLI, orchestration, output), `tools/harness/harness/scenario.py` (stdlib
   only: load + validate + substitute + semantic checks, path resolution, assert eval, golden read/write/compare,
   state diff), `tools/harness/schemas/scenario.schema.json` (§2.2 verbatim).
-- `addons/harness/harness.gd`, `addons/harness/rng.gd`, `addons/harness/command_bus.gd`,
-  `addons/harness/runners/scenario.gd`.
-Nothing to port verbatim; `research/scripts/r1_8_determinism/main.gd` shows the hashing (`PackedFloat64Array`
-replaced by sorted-key full-precision JSON, §3.6 S5) and the fixed-tick loop.
+- `addons/harness/{harness,rng,command_bus}.gd`, `addons/harness/runners/scenario.gd`. Nothing to port verbatim;
+  `research/scripts/r1_8_determinism/main.gd` shows the fixed-tick loop and hashing (here: sorted JSON, §3.6 S6).
 
 ### 3.2 Runner `addons/harness/runners/scenario.gd` (extends SceneTree, self-contained, contract §2.8.5)
 User args: `--scenario=<abs resolved json> --out=<abs dir> --fps=<int> --global-seed=<int> [--dump-ticks=a,b,..]`.
@@ -240,9 +237,8 @@ User args: `--scenario=<abs resolved json> --out=<abs dir> --fps=<int> --global-
    Holds are expanded by Python into explicit releases. Commands: `CommandBus.submit(cmd)`; the runner checks the
    handler and target first and reports `[run.unknown-command]` / `[run.unknown-target]` (`commands[i] target
    'ghost' is not a registered entity at tick 10`) instead of submitting.
-5. Finish: write `state.json`, `states.jsonl`, `ticks.jsonl`, `events.jsonl`, `metrics.json` to `--out`; print
-   `@@H` stat records (`ticks`, `hash`, `chain`, `events`) and `{"t":"done","rc":N}`, then `quit(N)` (0 clean,
-   1 runner findings). Files are written before `done`, so a missing `done` means incomplete output.
+5. Finish: write the §2.4 runner files to `--out`, print `@@H` stats (`ticks`, `hash`, `chain`, `events`), then
+   `{"t":"done","rc":N}` and `quit(N)` (0 clean, 1 runner findings); no `done` = incomplete output.
 
 ### 3.3 Verb flow (`run.py`) and `--twice`
 1. Resolve project, config, scenario paths; `scenario.load()` (schema, vars, semantics, unknown actions). Check that
@@ -263,12 +259,11 @@ User args: `--scenario=<abs resolved json> --out=<abs dir> --fps=<int> --global-
    The finding names up to 3 differing paths with both values (from the dumps of the two disagreeing runs at k).
 5. Golden: if `<stem>.golden.json` exists and no `--seed/--ticks` override: compare (§3.4). `--record`: after a
    clean `--twice`, write the golden (stat `golden: recorded <path>`).
-6. Verdict: worst of invocations, runner findings, asserts, twice, golden; `run.no-asserts` warning when the scenario
-   has no asserts and no golden exists (hint: add asserts, or record a golden).
+6. Verdict: worst of invocations, runner findings, asserts, twice, golden; `run.no-asserts` if no asserts and no golden.
 
 ### 3.4 Assert and golden algorithms (`scenario.py`, pure Python, unit-tested)
 - `resolve(state, path)`: walk entity -> keys/indices; missing -> `None` with reason (`entity 'x' not present at
-  tick 40` / `key 'vel' not in player`). A missing path fails every op except `exists` (which then fails too).
+  tick 40` / `key 'vel' not in player`); a missing path fails every op, including `exists`.
 - Assert message: `asserts[i] <path|metric> <op> <value>[ tol <t>] @<tick k|end|ticks a..b (all|any)>: got <v>`,
   plus ` (short by d)` / ` (over by d)` for numeric ops. For `during`/`all`, `got` is the first failing tick's value
   (`at tick k`); for `any`, the closest value and its tick. Numbers print with up to 6 significant decimals.
@@ -282,8 +277,7 @@ User args: `--scenario=<abs resolved json> --out=<abs dir> --fps=<int> --global-
 ### 3.5 Budgets and error patterns
 - 600-tick scenario with <= 10 small entities: `h run` <= 3 s wall warm (Godot process ~0.4 s [Run S4]);
   `--twice` <= 5 s; diagnosis adds <= 2 s. `states.jsonl` > 50 MB -> warning `[run.state-large]`, dumps stop.
-- Log scan: contract §2.8.4 unchanged. The runner's own messages are `@@H` records, never `ERROR:` lines.
-  `push_error` from CommandBus/Harness in game code during a run is caught as `godot.error` (with location).
+- Log scan: contract §2.8.4 unchanged; runner messages are `@@H` records, never `ERROR:` lines.
 
 ### 3.6 Spikes [Run] (scratchpad `a5/proj`: CharacterBody2D player on a StaticBody2D floor, `-s` runner by absolute
 path, `--headless --fixed-fps N`)
