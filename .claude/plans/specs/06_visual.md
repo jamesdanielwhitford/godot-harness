@@ -1,6 +1,7 @@
 # 06 Visual / screenshot check (A6, C8; planner P6)
 
-Status: spec v1, 2026-10-15, Opus planner P6. Conforms to `00_contract.md` v1 (cited "C §x"); deviations in §8.3.
+Status: spec v1.1, 2026-10-15, Opus planner P6 re-run: applies REVIEW B17 (R-15, R-35, R-19), N08 (R-42, R-47), N17,
+N22. Conforms to `00_contract.md` (B01-B07 applied; cited "C §x") and `REVIEW.md` (wins on conflict); deviations in §8.3.
 Tags: [Run] verified in §3.7 spikes (Godot 4.7.stable.official.5b4e0cb0f, Xvfb + llvmpipe, Mesa 25.2.8, odiff 4.5.0,
 scratchpad `a6/`), [U] unverified. Also answers contract open question (3) (§3.5).
 
@@ -48,7 +49,7 @@ h shot TARGET --layout [--sizes WxH[,WxH...]]
   scenario's seeds (A5); `--seed` there is rc 2.
 - `--twice`: capture every shot in two separate processes; any pixel difference -> FAIL `[shot.unstable]`.
 - `--movie`: also record every frame (`--write-movie <artifacts>/movie/frame.png`) until the runner quits (scene
-  mode: max tick; scenario mode: `ticks`). Stat `movie: <n> frames <dir>`. For the human gate and A7; never compared.
+  mode: max tick; scenario mode: `ticks`). Stat `movie: <n> frames <dir>`. For the human gate; never compared.
 - `--compare`: re-capture every approved baseline of TARGET (§2.3) with the settings stored in its meta and compare.
   `--name` selects one baseline. Any capture flag (`--tick --size --crop --node --hide --hide-layer --seed`) together
   with `--compare` is rc 2 (`--compare takes capture settings from the baseline`). TARGET with no baselines at all:
@@ -105,6 +106,7 @@ Verdict reasons: `<n> shot(s) captured`, `<k> of <n> shots differ from baseline`
 | `shot.renderer-mismatch` | error | baseline meta | baseline `env.renderer` != `gl_compatibility`; no diff is run |
 | `shot.no-baseline` | error | target | `--compare` and no approved baseline for TARGET/NAME |
 | `shot.baseline-unapproved` | error | baseline meta | only a proposal exists, or meta `status` != approved / empty `approved_by` |
+| `shot.baseline-unapproved` | warning | baseline meta | `status: approved` but `approved_by` not human (§3.3 predicate, R-35); the compare still runs |
 | `shot.baseline-tampered` | error | baseline PNG | sha256 of the PNG != meta `image.sha256` |
 | `shot.bad-baseline` | error (rc 2) | baseline meta | meta fails the §2.3 schema |
 | `shot.unstable` | error | target | `--twice` captures differ (`<n> px`) |
@@ -158,9 +160,13 @@ h baseline list [TARGET]
   count vs the current approved PNG, then reads one line; only `yes` approves (anything else skips). Approve = rename
   `.proposed.*` over the approved pair, set `status: approved`, `approved_by` = `git config user.name` (fallback
   `$USER`), `approved_at` = UTC ISO time. Check lines `OK   main-t30: approved by <who>` / `SKIP main-t30: declined`.
-  No proposals: `WARN baseline nothing to approve`, rc 5. The A8 hook additionally blocks this command for agents.
+  If `<who>` fails the human predicate (§3.3 step 1), the TTY prints a note and the pair is still approved (the next
+  `--compare` warns). No proposals: verdict `WARN baseline nothing to approve`, then the check line
+  `WARN proposals: none pending` (R-47, keeps the C §2.3 WARN invariant), rc 5. The A8 hook additionally blocks this
+  command for agents.
 - `list`: one check line per baseline: `OK <key>/<name>: approved by <who> <date>`, `WARN ...: proposal pending`,
-  `FAIL ...: tampered|unapproved|bad meta`. Verdict WARN when only pending proposals exist.
+  `WARN ...: provisional (approved_by <v>)` (non-human, R-35), `FAIL ...: tampered|unapproved|bad meta`. Verdict WARN
+  when there is a WARN line and no FAIL line.
 
 ### 2.4 Config (`harness.toml`, `CONFIG_TABLE = "shot"`)
 `[shot] baseline_dir = "baselines"` (str, project-relative), `threshold_pct = 0.1` (float 0..100, tolerant mode),
@@ -184,10 +190,10 @@ Runner records (in addition to C §2.8.5 `finding`/`done`): first
 `func start(plan: Dictionary, tick_source: Object) -> void` (connects `tick_source.tick_completed(tick)` for scenario
 mode; scene mode calls `on_tick(k)` itself), `func on_tick(tick: int) -> void`, `func pending() -> int`.
 
-### 2.6 Python API (for A7 and A8; not used by tests)
+### 2.6 Python API (internal to A6; not used by tests or other areas)
 `harness.visual.capture(run, project, target, shots, movie=False, twice=False) -> list[Shot]` (Shot = name, tick,
 path, w, h, env) and `harness.visual.compare(run, png, baseline_meta_path) -> CompareResult` (mode, px, pct, verdict,
-diff_png). A7's `h trace --movie` calls `capture(..., movie=True)` with its scenario.
+diff_png). Not in the R-01 unit allowlist. A7 records its AVI independently via `replay.run_scenario` (R-42).
 
 ## 3. Design
 
@@ -195,21 +201,29 @@ diff_png). A7's `h trace --movie` calls `capture(..., movie=True)` with its scen
 `tools/harness/harness/verbs/shot.py`, `tools/harness/harness/verbs/baseline.py`, `tools/harness/harness/visual.py`
 (plan building, capture orchestration, odiff wrapper via `proc.run()`, compare, baseline store, meta validation),
 `tools/harness/schemas/baseline.schema.json`, `addons/harness/runners/shot.gd` (scene mode),
-`addons/harness/runners/layout.gd` (headless layout), `addons/harness/runners/_capture.gd` (capture library, also used
-by A5's runner); the scenario hook block in `addons/harness/runners/scenario.gd` (§8.4); `docs/visual.md` (<= 80 lines,
+`addons/harness/runners/layout.gd` (headless layout), `addons/harness/runners/_capture.gd` (capture library, also
+loaded by A5's runner; C §2.8.5 library rules: `_` prefix, no `class_name`, never prints `done` or calls `quit()`);
+`docs/visual.md` (<= 80 lines,
 for the A8 `godot-visual` skill). Port: `research/scripts/r1_7_visual/proj/main.gd` (capture after
-`frame_post_draw`, `get_region` crop, layer toggles) and `run.sh` (flags).
+`frame_post_draw`, `get_region` crop, layer toggles) and `run.sh` (flags). B6 does NOT touch
+`addons/harness/runners/scenario.gd`: A5/B5 owns it entirely and writes the `--shot-at` block (R-15, §8.4).
 
 ### 3.2 Capture flow
 1. Parse args; `--headless` -> rc 4. Resolve project, TARGET, mode. `shutil.which("xvfb-run")` else rc 4. With
    `--compare`/`--twice`: odiff at `$HARNESS_CACHE/odiff/node_modules/@odiff/linux-x64/odiff` else rc 4.
    `--compare`: load + schema-check every `<key>/*.json` (not `.proposed.json`); build shots from their `capture`.
-2. `godot.ensure_imported()`; scenario mode: A5 `scenario.load()` and `sync.ensure_synced()` (via `run_scenario`).
+2. `godot.ensure_imported()` (explicit, R-32). Scenario mode: `d = harness.scenario.load(path)` (resolved dict),
+   `harness.scenario.write_resolved(d, <run dir>/artifacts/scenario.resolved.json)`, `sync.ensure_synced(run, project)`
+   (A1 R-33; `run_scenario` does not sync [U until the A5 re-plan lands]).
 3. Group shots by process settings (size, seed); one Godot process per group (<= 8 shots each). Scene mode:
    `godot.run(run, kind="shot", runner=shot.gd, display="xvfb", args=["--fixed-fps", fps] + (["--resolution", WxH])
    + (["--write-movie", <abs>/movie/frame.png] if movie), user_args=["--plan=<abs>"])`, fps = project.godot
-   `physics/common/physics_ticks_per_second` (default 60), so one frame = one physics tick. Scenario mode:
-   `scenario.run_scenario(..., display="xvfb", extra_args=[...size/movie], extra_user_args=["--shot-at=<abs>"])`.
+   `physics/common/physics_ticks_per_second` (default 60), so one frame = one physics tick; the verb then calls
+   `run.add_findings(inv.findings)` (`godot.run` returns an `Invocation`, R-31). Scenario mode (R-19):
+   `harness.replay.run_scenario(run, project, resolved, fps=fps, global_seed=<d's seed>, out_dir=<run dir>/artifacts/
+   scenario-<g>, extra_user_args=["--shot-at=<abs plan>"], extra_args=[size/movie args as above], display="xvfb",
+   kind="shot") -> RunResult`; the verb adds `RunResult.findings` (already merged per C §2.8.6) and evaluates no
+   asserts or goldens (those are `h run` only).
 4. `shot.gd`: `_initialize`: parse `--plan`; emit `env` record; if `DisplayServer.get_name() == "headless"`: finding
    `[shot.headless]`, `done` rc 1 (verb maps to rc 4). `seed(plan.seed)`; `load(scene)`, `can_instantiate()` check
    (S2), instantiate, `root.add_child`, `current_scene`; `cap = load(plan.capture_script).new()`, `root.add_child(cap)`,
@@ -222,17 +236,23 @@ for the A8 `godot-visual` skill). Port: `research/scripts/r1_7_visual/proj/main.
    callback: `img = root.get_texture().get_image()`; crop (`--crop` rect or node rect, intersected with the image;
    empty -> `[shot.crop-outside]`); `img.save_png(out_dir/<name>.png)`; emit the `shot` record; restore visibility.
    `quit()` in the same `_process` still lets that frame draw and save [Run K4].
-6. Merge per C §2.8.6 (log scan, rc, runner). Display failure in the log (`Unable to create DisplayServer`,
-   `Xvfb failed to start`, `xvfb-run: error`) -> retry once (`retried: true`), then rc 4 `[shot.no-display]`.
-   A shot listed in the plan with no `shot` record and no finding -> `[harness.runner-incomplete]`.
+6. Merge per C §2.8.6 (log scan, rc, runner) is done by `godot.run`/`run_scenario`. The display retry is in
+   `godot.py` (C §2.8.3, R-14): `Invocation.display_failed` (or `RunResult.invocation.display_failed`) -> the verb gives
+   rc 4 `[shot.no-display]`. A shot listed in the plan with no `shot` record and no finding ->
+   `[harness.runner-incomplete]`. In scenario mode A5's runner keeps stepping frames (no ticks recorded) while
+   `cap.pending() > 0`, capped at 120 frames, then emits `[harness.runner-incomplete]` itself (R-15).
 7. `--twice`: run step 3 again into `shots_b/`; per shot `odiff -t 0 --fail-on-layout --parsable-stdout A B` ->
    count > 0 or rc 21 -> `[shot.unstable] error: <name>: <n> px differ between two identical runs (hint: seed
    particles/RNG, avoid Time/OS clocks and real delta in visuals; the harness already passes --fixed-fps and seed())`.
 8. Output: PNG paths only. Never print image data; never write images outside the run dir except `h baseline`.
 
 ### 3.3 Compare algorithm (`visual.compare`, per approved baseline)
-1. Meta schema, `status == approved` and non-empty `approved_by` (else `shot.baseline-unapproved`); a `.proposed.json`
-   with no approved pair also gives `shot.baseline-unapproved`. sha256(PNG) == `image.sha256` (else `tampered`).
+1. Meta schema, `status == approved` and non-empty `approved_by` (else `shot.baseline-unapproved` error); a
+   `.proposed.json` with no approved pair also gives that error. Human predicate (R-35, same as A7 §2.7): human-approved
+   iff `approved_by` matches none of `^$|^(?i:provisional|agent|claude|ai$|bot$)`. `status: approved` with a non-human
+   `approved_by` (e.g. `provisional-default`, `approved_at: null`) still compares, plus one `[shot.baseline-unapproved]
+   warning: <name>: provisional baseline (approved_by <v>)`, so a clean compare is rc 5 WARN, never PASS. This is how
+   the sample's B9b baselines run until a human approves at G3 (D4). sha256(PNG) == `image.sha256` (else `tampered`).
    `env.renderer != "gl_compatibility"` -> `shot.renderer-mismatch` (no diff). Capture size != `image.w/h` ->
    `shot.size-mismatch`.
 2. Mode: **exact** when `env.godot`, `renderer`, `adapter`, `api` all equal the current run's env; else **tolerant**.
@@ -264,11 +284,9 @@ layout match between headless and Xvfb (text width 551 in both [Run K6]), so lay
 - `xvfb-run -a` returns Godot's own exit status: `quit(7)` -> 7, `OS.crash` -> 134. So C §2.8.3/2.8.6 work unchanged.
 - SIGTERM to the process group (C §2.8.3 at T): xvfb-run's trap stops Xvfb and removes its lock; the whole group
   (xvfb-run, Xvfb, godot) is gone within 0.3 s; Popen rc = -15 (the shell itself died). `godot.run` records rc 124.
-- SIGKILL to the group (T+3 s path): the group dies but `/tmp/.X<n>-lock` and `/tmp/.X11-unix/X<n>` stay; the next
-  `-a` silently moves to `:<n+1>`. Δ request to A1 `godot.py` (display `xvfb` only): after a SIGKILL, remove lock
-  files created after the invocation started whose PID (lock content) is not alive, plus the matching socket.
-- Six parallel `xvfb-run -a` captures x 2 rounds: 12/12 rc 0, no display collision [Run]; the retry in §3.2.6
-  covers the rare race [U].
+- SIGKILL to the group (T+3 s path): `/tmp/.X<n>-lock` and `/tmp/.X11-unix/X<n>` stay; the next `-a` moves to
+  `:<n+1>`. Cleanup is contract (C §2.8.3, A1 `godot.py`, R-14); AC-06.19 verifies it.
+- Six parallel `xvfb-run -a` captures x 2 rounds: 12/12 rc 0, no collision [Run]; the godot.py retry covers races [U].
 - Xvfb unusable: Godot logs `ERROR: Unable to create DisplayServer, all display drivers failed.`, rc 1 [Run].
 
 ### 3.6 Budgets and timeouts
@@ -282,10 +300,8 @@ tick from x=20, CanvasLayer HUD Label, CPUParticles2D 50 unseeded)
   --audio-driver Dummy --fixed-fps 60 -s shot.gd -- --tick=30`: wall 0.78-0.84 s; log = banner, `WARNING: Could not
   set V-Sync mode` (benign list), `OpenGL API 4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4 - Compatibility - Using
   Device: Mesa - llvmpipe (LLVM 20.1.2, 256 bits)`; nothing else, so a clean capture scans clean.
-- K2 determinism: unseeded particles + `--fixed-fps 60`, 3 runs: 3 different md5s (odiff `48;0.02`, IM AE 48). With
-  `seed(12345)` in the runner's `_initialize`: 3/3 identical md5 `33cc054d...`. (R1.7 saw 30/30 without seed; this
-  setup differs, so the runner always seeds.)
-- K3 xvfb-run exit status: §3.5 (python Popen `start_new_session=True`, `os.killpg`; group listed via /proc stat).
+- K2 determinism: unseeded particles + `--fixed-fps 60`: 3 runs, 3 md5s (odiff `48;0.02`); with `seed(12345)` in
+  `_initialize`: 3/3 identical. The runner always seeds. K3 xvfb-run exit status: §3.5 (Popen new session, killpg).
 - K4 tick semantics: capture when `c = physics_frames - base` reaches N via the SceneTree `_process` + one-shot
   `frame_post_draw`: N=30 -> Box drawn at x=50 (exact), N=0 -> first `_process` already has c=1 (x=21). Calling
   `quit(0)` before `frame_post_draw` still saved the PNG.
@@ -294,17 +310,15 @@ tick from x=20, CanvasLayer HUD Label, CPUParticles2D 50 unseeded)
   crop: 101x23 at 640x360, 202x46 at 1280x720, 404x92 at 2560x1440 (scale 1/2/4 from `get_final_transform()`);
   `--resolution 2560x1440` works on a 1920x1080 Xvfb screen. `--resolution 800x1280` with `keep` aspect -> 800x450.
   `canvas_cull_mask = 0` hides all 2D (99.96%).
-- K6 layout: `root.size = (w,h)` in a `-s` runner works under `--headless` and Xvfb with identical rects; with
-  `aspect=expand`, 800x1280 -> visible 640x1024, 2560x1080 -> 853x360; with `keep`, always 640x360. Label text width
-  551 px headless and Xvfb. Controls built in `_ready` need `set_anchors_and_offsets_preset` (with
-  `set_anchors_preset` the root Control stayed 0 wide), relevant for fixture code.
-- K7 `--write-movie f.png --quit-after 30` with a `-s` runner: 30 PNGs + `f.wav`, wall 0.99 s.
-- K8 `load("/abs/path/_capture.gd").new()` from a `-s` runner with `--path proj`: loads, `can_instantiate()` true.
+- K6 layout: `root.size = (w,h)` in a `-s` runner gives identical rects headless and Xvfb; `aspect=expand`: 800x1280
+  -> visible 640x1024, 2560x1080 -> 853x360; `keep`: always 640x360. Label width 551 px in both. Controls built in
+  `_ready` need `set_anchors_and_offsets_preset` (`set_anchors_preset` left the root 0 wide).
+- K7 `--write-movie f.png --quit-after 30`: 30 PNGs + `f.wav`, 0.99 s. K8 `load("/abs/_capture.gd").new()` from a
+  `-s` runner with `--path proj`: loads, `can_instantiate()` true.
 - K9 input injection under Xvfb (A5 open question 2): `parse_input_event` + `flush_buffered_events` in `_process` at
   c=9 -> `is_action_just_pressed` true at physics frame 10, same as headless.
-- K10 env: `RenderingServer.get_current_rendering_method()` = `gl_compatibility`, `DisplayServer.get_name()` = `X11`
-  (Xvfb) / `headless`; `Engine.get_version_info().string` = `4.7-stable (official)` (short; use godot.py's string).
-- K11 `--headless` + `frame_post_draw` capture: hangs, `timeout 8` -> rc 124 (confirms R1.7).
+- K10 env: rendering method `gl_compatibility`, `DisplayServer.get_name()` `X11`/`headless`; `Engine` version string
+  is short (`4.7-stable (official)`), so use godot.py's. K11 `--headless` + `frame_post_draw`: hangs, rc 124 (R1.7).
 
 ## 4. Acceptance criteria (fixture `shot_min` copied per B3; every `h` result passes `assert_contract`)
 - AC-06.1 `h shot res://scenes/main.tscn --tick 30` -> rc 0, `PASS shot`, stats `project, import, target, env` in
@@ -320,7 +334,10 @@ tick from x=20, CanvasLayer HUD Label, CPUParticles2D 50 unseeded)
 - AC-06.8 `--compare` against the fixture's approved baseline -> rc 0, `OK   main-t30: identical`; with FAULT-A6-01
   planted -> rc 1, `[shot.diff]` with `\d+ px \([0-9.]+%\)`, `compare.json` px > 0, `.diff.png` exists. [contract]
 - AC-06.9 Tolerant mode: copy of the baseline meta with `env.api` changed to `other Mesa` -> HUD shift still FAILs
-  (0.72% > 0.1%); clean scene -> rc 0 `identical` (sha equal) ; an `ignore` rect covering the shifted area -> rc 0. [contract]
+  (0.72% > 0.1%); clean scene -> rc 0 `identical` (sha equal) ; an `ignore` rect covering the shifted area -> rc 0.
+  Provisional case (N22): meta with `approved_by: "provisional-default"`, `approved_at: null`, clean scene -> rc 5
+  `WARN`, `OK   main-t30: identical`, exactly one finding `[shot.baseline-unapproved] warning` naming
+  `provisional-default`; with FAULT-A6-01 planted -> rc 1 (`shot.diff` error plus that warning). [contract]
 - AC-06.10 Baseline with `env.renderer = "forward_plus"` -> rc 1 `[shot.renderer-mismatch]`, no odiff call
   (`compare.json` has no px). [contract]
 - AC-06.11 Baseline PNG replaced by a 320x180 image with meta `image.{w,h,sha256}` updated to match -> rc 1
@@ -348,11 +365,16 @@ tick from x=20, CanvasLayer HUD Label, CPUParticles2D 50 unseeded)
 - AC-06.22 `h baseline approve res://scenes/main.tscn` from a subprocess without a TTY (stdin `/dev/null`, new session)
   -> rc 2 `[shot.approve-needs-tty]`, files unchanged. Under `pty.fork()` answering `yes` -> rc 0, approved pair
   replaced, `approved_by` non-empty, `.proposed.*` gone; answering `no` -> `SKIP`, nothing changed. [contract]
-- AC-06.23 Only a proposal exists -> `--compare` rc 1 `[shot.baseline-unapproved]`; PNG edited after approval ->
-  rc 1 `[shot.baseline-tampered]`; meta missing `env` -> rc 2 `[shot.bad-baseline]`. [contract]
-- AC-06.24 `h baseline list` -> one check line per baseline, WARN rc 5 with a pending proposal. [contract]
-- AC-06.25 Scenario mode (needs A5): `h shot res://scenarios/jump.json --tick 40,90` on `scenario_min` -> 2 PNGs,
-  rc 0; two runs byte-identical; `--tick 999` -> rc 2. [contract, after A5]
+- AC-06.23 Only a proposal exists -> `--compare` rc 1 `[shot.baseline-unapproved] error`; PNG edited after approval ->
+  rc 1 `[shot.baseline-tampered]`; meta missing `env` -> rc 2 `[shot.bad-baseline]`. Predicate cases (N22, R-35):
+  `approved_by` `provisional-default`, `Agent`, `claude-opus` and `BOT` each -> rc 5 with the warning; `fixture T6`,
+  `Ada` and `ci-bot` (`bot$` is anchored to the whole value) -> rc 0 with no warning. [contract]
+- AC-06.24 `h baseline list` -> one check line per baseline, WARN rc 5 with a pending proposal or a provisional
+  baseline. `h baseline approve` with no proposals (via `pty.fork()`) -> rc 5, verdict `WARN`, check line
+  `^WARN +proposals: none pending$` (R-47). [contract]
+- AC-06.25 Scenario mode (needs B5's `--shot-at` block and `replay.run_scenario`): `h shot res://scenarios/jump.json
+  --tick 40,90` on `scenario_min` -> 2 PNGs, rc 0; two runs byte-identical; `--tick 999` -> rc 2; run.json invocation
+  kind `shot` with `xvfb-run` in argv. [contract, after B5]
 - AC-06.26 `h selftest --area A6` -> all must faults CAUGHT, CLEAN-A6-* PASS, wall <= 180 s. [contract, slow]
 - AC-06.27 Unit (visual.py is not public; tested via the CLI only): odiff output parsing is covered through AC-06.8/9/11.
   Untestable automatically: that the A8 hook blocks `approve` for agents (A8's tests).
@@ -404,7 +426,8 @@ Hook lines in the fixture (exact text, one each): `scripts/main.gd`: `	pass # HO
 3. Crop/node/hide/hide-layer, multi-tick, movie -> AC-06.13, 14, 17.
 4. `visual.compare` + baseline store + schema -> AC-06.8-12, 23; `--twice` -> AC-06.2, 16.
 5. `baseline.py` propose/approve/list -> AC-06.21, 22, 24.
-6. `layout.gd` + `--layout` -> AC-06.20. 7. Scenario hook in A5's runner -> AC-06.25. 8. Selftest -> AC-06.26.
+6. `layout.gd` + `--layout` -> AC-06.20. 7. Scenario mode via `replay.run_scenario` + B5's `--shot-at` block
+(B6 writes no GDScript in `scenario.gd`) -> AC-06.25. 8. Selftest -> AC-06.26.
 
 ## 8. Out of scope, open questions, deviations, assumptions
 ### 8.1 Out of scope (v0)
@@ -417,32 +440,35 @@ legibility judgments (human gate).
    (R1.7 untested). `--twice` is the per-scene guard.
 2. Parallel `xvfb-run -a` display race: not observed in 12 runs; one retry covers it.
 3. Layout clip test for `RichTextLabel` and `fit_content` labels is not defined (no finding emitted).
-4. Fonts that load from the project (not the built-in default) render identically headless vs Xvfb: only the default
-   font measured.
-5. Whether `quit()` inside the capture callback ever loses the last PNG under heavy load (worked in K4).
-### 8.3 Deviations from 00_contract (for the reviewer)
-- D-a Fixture `shot_min` (and fault `files/`) contains binary PNGs (<= 20 KB each), against C §2.11 "text files only".
-  Reason: the selftest needs an approved baseline before any verb runs. Contract tests also build baselines at run time
-  (propose + pty approve), so only selftest depends on the committed PNG.
-- D-b `_capture.gd` is loaded at run time by absolute path from both `shot.gd` and A5's `scenario.gd` (C §2.8.5 says no
-  preload of other harness files). It is `load()` at run time, not `preload`, and keeps capture code in one file [Run K8].
-- D-c `--layout` runs with `display="headless"` (kind `runner`); only image capture refuses headless. A user-passed
-  `--headless` is rc 4 in every mode.
-- D-d Δ to A1 `godot.py`: for display `xvfb`, (1) after a SIGKILL clean stale `/tmp/.X<n>-lock` + socket (§3.5),
-  (2) accept extra Godot args per call (`--fixed-fps`, `--resolution`, `--write-movie`), (3) one retry when the log
-  shows a display start failure, reported as `retried: true`.
-- D-e Contract open question (3) is answered in §3.5: no change to rc normalisation is needed.
+4. Project fonts (not the default) measure the same headless vs Xvfb: only the default font was measured.
+5. `quit()` in the capture callback losing the last PNG under heavy load (worked in K4).
+### 8.3 Deviations from 00_contract (all accepted by REVIEW; now contract text)
+- D-a **Accepted R-11** (C §2.11): `shot_min` and fault `files/` hold PNGs <= 20 KB; only selftest needs the committed one.
+- D-b **Accepted R-12** (C §2.8.5): `_capture.gd` is `load()`ed by absolute path from `shot.gd` and A5's runner [Run K8].
+- D-c **Accepted R-13** (C §2.8.2): `--layout` runs headless (kind `runner`); user `--headless` is rc 4 in every mode.
+- D-d **Accepted R-14, closed; owned by A1/B1 `godot.py`** (C §2.8.3). For display `xvfb`: (1) stale
+  `/tmp/.X<n>-lock` + socket cleanup after SIGKILL (§3.5), (2) extra Godot args go through `args`, (3) one retry on
+  display start failure (`retried: true`), then `Invocation.display_failed` -> A6 rc 4 `[shot.no-display]`.
+- D-e Contract open question (3) is answered in §3.5: no change to rc normalisation (C §8, N14).
+- Also applied: R-15 (scenario.gd owned by A5), R-19 (`replay.run_scenario`), R-35 (one approval predicate +
+  provisional warning), R-42 (A7 movie independent), R-47 (`WARN proposals: none pending`), N22 (AC-06.9/23/24).
 ### 8.4 Assumptions on other areas
-- A5: `run_scenario(run, project, scenario, fps, global_seed, extra_user_args, display, extra_args=[])` (adds
-  `extra_args`, Godot-side args before `--`). `runners/scenario.gd` gains a delimited block (`# --- A6 capture ---`,
-  <= 12 lines, written by B6 after B5): if `--shot-at=<abs>` is given, parse it, `cap = load(plan.capture_script).new()`,
-  `root.add_child(cap)`, `cap.start(plan, Harness)`; before `quit`, wait while `cap.pending() > 0` (frames only, no
-  more ticks are recorded). `Harness.tick_completed(k)` is emitted in `_process` after tick k (A5 §3.2.3), so a capture
-  connected there shows the state after step k. The spec reviewer assigns the file ownership.
-- A7: uses `harness.visual.capture(..., movie=True)` for `h trace --movie`; frames are named `frame%08d.png` by Godot.
+- A5 (R-19, R-15, R-18): `harness/replay.py` `run_scenario(run, project, resolved: Path, *, fps, global_seed,
+  out_dir, extra_user_args=(), extra_args=(), display="headless", kind="scenario") -> RunResult` (fields `invocation,
+  out_dir, state, ticks_path, states_path, events_path, metrics, findings`); merges per C §2.8.6, no asserts/goldens.
+  `scenario.load(path, vars=None, seed=None, ticks=None) -> dict`, `scenario.write_resolved(d, path)`. A5/B5 owns
+  `runners/scenario.gd` and writes the `--shot-at=<abs plan json>` block: parse, `cap =
+  load(plan.capture_script).new()`, `root.add_child(cap)`, `cap.start(plan, Harness)`; before `quit` keep stepping
+  frames (no more ticks recorded) while `cap.pending() > 0`, capped at 120 frames, then `[harness.runner-incomplete]`.
+  `Harness.tick_completed(k)` is emitted after tick k (and once for tick 0, R-18; A6 ignores k = 0 because `--tick`
+  >= 1), so a capture connected there shows the state after step k.
+- A7: independent of A6. `h trace --movie` records AVI itself through `replay.run_scenario(kind="movie",
+  display="xvfb", extra_args=[--write-movie ...])` (R-42); A6 `--movie` stays PNG frames.
 - A8: the `godot-visual` skill (from `docs/visual.md`): never Read PNGs to judge them; use `h shot --compare` /
   `--layout`; propose, never approve. A PreToolUse hook blocks `h baseline approve` and Edit/Write under
   `<baseline_dir>/` for agents. `h doctor` already checks `xvfb-run`, `odiff`, `compare` (A1).
 - A1: config discovery for `[shot]`; `[harness] renderer` validation (only `gl_compatibility`).
-- A9: the sample's HUD scene gets an approved baseline by the human at Gate G3, not by an agent.
+- A9 (R-35): B9b makes the sample's baselines with `h baseline propose`, then renames the pair to approved with
+  `approved_by: "provisional-default"`, `approved_at: null` (recorded in build_notes; not an approval, D4). Sample
+  `h shot --compare` is then rc 5 with only `shot.baseline-unapproved` warnings until the human approves at G3.
 - Plan defaults: D4 (approval is human), B4 (odiff 4.5.0 pinned), B6 (GL + llvmpipe, Mesa recorded in meta).
