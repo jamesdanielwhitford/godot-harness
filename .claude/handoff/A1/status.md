@@ -1,16 +1,20 @@
-area: A1 core_cli      phase: plan      state: done
-spec: .claude/plans/specs/01_core_cli.md @ uncommitted
+area: A1 core_cli      phase: plan (re-run after G1 review)      state: done
+spec: .claude/plans/specs/01_core_cli.md v1.1 @ uncommitted
 tests: 0 total / 0 pass / 0 fail (n/a)      lock: n/a
-updated: 2026-10-15 by planner (Opus)
+updated: 2026-10-15 by planner re-run (Opus)
 done:
-- spec v1 written: 30 ACs (AC-01.1-30), 20 faults (FAULT-A1-01..20, 1 nice) + 4 clean entries, fixtures, 7-step build order
-- spikes [Run]: batch load-check (0.29 s / 52 files) beats per-file --check-only (2.8 s x4 parallel, 10.3 s serial), same findings on 35 r1_5 cases -> batch chosen with begin/end records + resume after hang
-- --doctool gap root-caused: target dir must exist (rc 1); dump with --path aborts rc 134 after writing; fix = h api --rebuild (no --path), bootstrap step 8 delegates to it
-- autoloads run after a -s runner's _init and can override its exit code (rc 1 -> 0); FAULT-P0-06 premise does not hold
-- r1_5 snippet sources (only in the ephemeral scratchpad) copied into spec §6
+- spec v1: 30 ACs, 20 faults (1 nice) + 4 clean, fixtures, 7-step build order; spikes [Run] in §3.6
+- v1.1 applied REVIEW B08-B13 + N04/N16/N17/N19:
+  - B08 R-29: §3.2 step 9 calls harness.lint.run_lint(run, project, None|files, "full"); §8.4 updated
+  - B09 R-26: §2.4 --exists FAIL = 3 lines; AC-01.21
+  - B10 R-27: CLEAN-A1-01 args ["--smoke","--no-lint"]
+  - B11 R-28/R-39: AC-01.16 rewritten (phases regex); AC-01.27 [contract] via run_godot
+  - B12 R-33/R-16: §2.3 + §3.1 sync.py library (ensure_synced, install_gdunit4, sync_project), autoload insertion, gdUnit4 overwrite policy; AC-01.18 extended; fixture harness_trees/gdunit_cache
+  - B13 R-30/R-25/R-14: public checkrun.load_check (§3.1); runner-incomplete attribution (§3.2 step 5) + AC-01.31; new §3.8 xvfb handling
+  - N04/N17: §8.3 deviations marked with R-ids; §8.2-2 closed; N16: sync.py in build step 1; N19: §8.2-7
 next:
-- spec reviewer: check §8.3 contract deviations D-a..D-e and §8.4 assumptions (A2 reuses load_check.gd; A3 harness.lint.check_files API)
-- T1 writes tests/contract/a1, tests/unit/a1, tests/gd/a1, fixtures scene_cases + gd_cases + harness_trees/sync_src, selftest FAULT-A1-*/CLEAN-A1-*
+- spec reviewer: confirm B08-B13 closed; one extra return value `installed (pin changed)` in install_gdunit4 (§8.3 D-g)
+- T1 writes tests/contract/a1, tests/unit/a1, fixtures scene_cases + gd_cases + harness_trees/{sync_src,gdunit_cache}, selftest FAULT-A1-*/CLEAN-A1-*
 blockers:
 - none
 disputes: 0 open

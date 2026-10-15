@@ -1,29 +1,25 @@
 # 01 Core CLI: shim, godot.py, import, sync, api, check, doctor, selftest (A1)
 
-Status: spec v1, 2026-10-15, Opus planner P1. Conforms to `00_contract.md` (cited as "C §x"); deviations are listed in
-§8.3. Tags: [Run] verified in §3.6 spikes (Godot 4.7.stable.official.5b4e0cb0f), [U] unverified.
+Status: spec v1.1, 2026-10-15, Opus planner P1 re-run (REVIEW B08-B13, N04/N16/N17/N19 applied). Conforms to
+`00_contract.md` (cited as "C §x") and `REVIEW.md` (R-ids; REVIEW wins on conflict); deviations are listed in §8.3.
+Tags: [Run] verified in §3.6 spikes (Godot 4.7.stable.official.5b4e0cb0f), [U] unverified.
 
 ## 1. Purpose and failure modes covered
 
-A1 is the first builder. It ships the contract core (C §3.1 step 0) plus the verbs an agent uses after every edit:
-`h check` (did my scripts/scenes break?), `h api` (does this API exist in 4.7?), `h import`, `h sync`, `h doctor`,
-`h selftest`. Failure modes (godot_harness_plan F-ids):
-- **F1/F2 Godot-3 idioms and hallucinated API**: `h check` catches 24/35 r1_5 snippets at parse time [Run]; `h api`
-  answers "not in 4.7, renamed to X" and "did you mean" before code is written; `--exists` for hooks (A8).
-- **F3 silent scene breakage** (r1_4): load+instantiate with Logger capture; every "detectable" r1_4 case FAILs.
-- **F4 exit codes lie** (R1.1 #4, R1.5 #2, S2): log/Logger records are the signal; rc only adds failures; hang and
-  crash become findings; an autoload can overwrite the exit code [Run, §3.6 K].
-- **F5 runtime-only errors** (R1.5 rec. 4): `--smoke` runs each scene for N physics frames; catches 8/8 r1_5 R-class
-  snippets [Run].
-- **F7 class cache / fresh clone** (R1.1 #3): auto-import rule C §2.8.7 plus two A1 refinements (§3.3).
-- **F11 noisy output**: C §2.3 grammar, <= 40 lines; batching keeps runs to one Godot process per phase.
-- D-ids: none changed. Uses D1 (GDScript only) and D5 (small projects: <= ~500 files per check).
+A1 is the first builder: the contract core (C §3.1 step 0) plus `h check`, `h api`, `h import`, `h sync`, `h doctor`,
+`h selftest`, plus the shared libraries `godot.py`, `checkrun.load_check`, `sync.py`. Failure modes (plan F-ids):
+**F1/F2** Godot-3 idioms / hallucinated API (`h check` catches 24/35 r1_5 snippets at parse time [Run]; `h api` gives
+"renamed to X" / "did you mean"; `--exists` for A8 hooks). **F3** silent scene breakage (load+instantiate with Logger
+capture; every detectable r1_4 case FAILs). **F4** exit codes lie (Logger records are the signal; hang, crash and
+early quit become findings [Run §3.6 K]). **F5** runtime-only errors (`--smoke` catches 8/8 r1_5 R-class [Run]).
+**F7** class cache / fresh clone (C §2.8.7 + §3.3). **F11** noisy output (C §2.3; one Godot process per phase).
+D-ids: none changed; uses D1 (GDScript only) and D5 (<= ~500 files per check).
 
 ## 2. Interfaces
 
 All verbs: C §2.1-2.5 (shim, common flags `--project/--strict/-h`, stdout grammar, rc 0-5, run dir). Only the
 verb-specific parts are listed here. Rule ids owned by A1: `godot.*`, `harness.*`, `check.*`, `selftest.*`, and the
-new prefix `api.*` (§8.3).
+prefix `api.*` (R-03).
 
 ### 2.1 `h check [PATH...] [--changed] [--smoke] [--smoke-frames N] [--no-lint] [--no-deps] [--include-addons]`
 - PATH: file or dir, cwd-relative, absolute, or `res://...`; must lie inside the project, else rc 2
@@ -36,14 +32,17 @@ new prefix `api.*` (§8.3).
   plus dependents. Not a git work tree: rc 2 `ERROR check usage: --changed needs a git work tree`. Empty set: PASS.
 - `--smoke`: scenes phase also adds each instantiated scene under `root` and awaits N physics frames (default 2,
   1-600); runs `_ready`/`_physics_process` code. Off by default (runs project code with side effects).
-- `--no-lint`: skip the A3 phase. Lint is otherwise called through `harness.lint` if importable (§3.4).
+- `--no-lint`: skip the A3 phase. Lint is otherwise called through `harness.lint.run_lint` if importable (§3.2
+  step 9, R-29).
 - Stat lines, in order: `project:`, `import: ran (<why>)|fresh`, `files: <a> .gd, <b> .tscn, <c> .tres` (omit zero
-  kinds, but at least `0 .gd`), `phases: scripts <s>s, scenes <s>s, lint <s>s|skipped (<why>), smoke on|off`.
+  kinds, but at least `0 .gd`), `phases: scripts <s>s, scenes <s>s, lint <s>s|skipped (<why>), smoke on|off`
+  (`<why>` = `--no-lint` or `harness.lint not installed`).
 - Verdict reason: `<e> errors, <w> warnings in <n> files (<t>s)` or `0 findings in <n> files (<t>s)` (C §2.3).
 - Rules emitted: scan/Logger rules of C §2.8.4 (`godot.*`); `check.load-failed` (ResourceLoader returned null),
   `check.instantiate-failed` (PackedScene.instantiate() returned null), `harness.hang`/`harness.crash` located at the
   file being checked when the runner died, `harness.rc` warning when the process rc differs from the runner's
-  `done` rc (an autoload called `quit()`, §3.6 K), plus whatever `harness.lint` adds.
+  `done` rc (an autoload called `quit()`, §3.6 K), `harness.runner-incomplete` at the item when project code quits
+  rc 0 before `done` (§3.2 step 5, R-25), plus whatever `harness.lint` adds.
 ```
 $ tools/harness/h check --project /tmp/h/scene_cases --smoke
 FAIL check 3 errors, 0 warnings in 6 files (1.9s)
@@ -62,18 +61,24 @@ Always runs `--import` (kind `import`, timeout 180 s, retry once on rc 134, C §
 first. Stats: `project:`, `import: ran (requested|forced)`, `duration: <s>s`. Import log findings count (a broken
 scene can log `ERROR: res://x.tscn:1 - Parse Error: ...` at import [Run]). PASS / FAIL / WARN per C §2.4.
 
-### 2.3 `h sync [--no-gdunit] [--check]`
+### 2.3 `h sync [--no-gdunit] [--check]` and the `harness.sync` library (R-33)
+`verbs/sync.py` is a thin wrapper over `sync.sync_project` (§3.1; also used by A4-A7).
 - Mirrors `$HARNESS_REPO/addons/harness/` (excluding `runners/`, `*.uid` and `.import` files) into
   `<project>/addons/harness/` (extra files there are deleted), then writes `addons/harness/.sync.json`
-  `{"schema":"harness.sync/1","source_hash":"<sha256 over sorted (relpath, bytes)>","gdunit4_commit":"<sha|null>"}`.
-- gdUnit4 (unless `--no-gdunit`): copies `<HARNESS_CACHE>/gdunit4/addons/gdUnit4/` to `<project>/addons/gdUnit4/` when
-  missing or when `.sync.json.gdunit4_commit` differs from pins.toml. Cache missing: rc 4 `gdUnit4 not in cache (run
-  tools/bootstrap.sh)`. Plugin enabling is not done (A4 decides, §8.2).
-- Autoloads: for each name in harness.toml `[harness] autoloads` (default `["Harness","Rng","CommandBus"]`), file
-  `addons/harness/<snake_case(name)>.gd`. If the file exists, ensure `[autoload]` in `project.godot` has
-  `<Name>="*res://addons/harness/<snake>.gd"` (section appended at the end when missing; other lines untouched). If
-  the file is not shipped: check line `SKIP autoload <Name>: not shipped`. A different existing value for the same
-  name: finding `res://project.godot: [harness.sync-conflict] error: autoload <Name> already set to <v>`, no write.
+  `{"schema":"harness.sync/1","source_hash":"<sha256 over sorted (relpath, bytes)>","gdunit4_commit":"<sha|null>"}`
+  (`gdunit4_commit` non-null only when the harness installed gdUnit4).
+- gdUnit4 (unless `--no-gdunit`) = `install_gdunit4` (§3.1): copies `<HARNESS_CACHE>/gdunit4/addons/gdUnit4/` minus
+  `test/` and `*.uid` to `<project>/addons/gdUnit4/` when missing. An existing addon whose `plugin.cfg` version differs
+  from the pin is overwritten only if `.sync.json.gdunit4_commit` is non-null (harness-installed); otherwise rc 4
+  `gdUnit4 <v> in project, harness pins 6.2.2 (run h sync)` and the user's copy is left untouched. Cache missing:
+  rc 4 `gdUnit4 not in cache (run tools/bootstrap.sh)`. Plugin enabling is not done (A4 decides, §8.2).
+- Autoloads (R-16): for each name in harness.toml `[harness] autoloads` (default
+  `["Harness","Rng","CommandBus","Trace"]`, C §2.6), file `addons/harness/<snake_case(name)>.gd`. If the file exists,
+  ensure `[autoload]` in `project.godot` has `<Name>="*res://addons/harness/<snake>.gd"`: a missing entry goes after
+  the last key line of the existing `[autoload]` section (new section at file end only if none); lines are never
+  reordered, so the A9 template order (Harness, Rng, CommandBus, Trace, SceneManager) stays byte-identical. Not
+  shipped: `SKIP autoload <Name>: not shipped`. Different existing value: `res://project.godot:
+  [harness.sync-conflict] error: autoload <Name> already set to <v>`, no write.
 - Check lines: `OK addons/harness: <n> files (<k> changed)`, `OK gdunit4: <tag> <sha12>`, one per autoload.
 - `--check`: writes nothing; FAIL with `[harness.sync-stale] error` per out-of-date part. Idempotent: a second sync
   changes 0 files and leaves `project.godot` byte-identical.
@@ -83,7 +88,7 @@ scene can log `ERROR: res://x.tscn:1 - Parse Error: ...` at import [Run]). PASS 
 h api <Name>                 # Class | Class.member | global function | annotation | constant
 h api <Name> --all           # class: list members (<= 30 lines, then `more:` stat)
 h api --search <substr> [--limit N]   # case-insensitive substring over keys; default limit 20, max 30
-h api --exists <Name>        # rc 0 PASS / rc 1 FAIL; output: verdict + log line only (hook mode)
+h api --exists <Name>        # hook mode: PASS rc 0 = 2 lines (verdict, log); FAIL rc 1 = 3 lines (R-26)
 h api --rebuild              # (re)builds the cache index via Godot (kind doctool)
 ```
 - Resolution of a bare name, first hit wins: class / builtin type; `@GDScript.<n>` (GDScript-only functions such
@@ -101,6 +106,9 @@ h api --rebuild              # (re)builds the cache index via Godot (kind doctoo
   `FAIL api 'KinematicBody2D' not in Godot 4.7 (renamed: CharacterBody2D)`, stat `suggest: CharacterBody2D`, finding
   `-: [api.renamed] error: KinematicBody2D was renamed in Godot 4 (hint: use CharacterBody2D)`. Member renames work
   too (`Control.rect_position` -> `Control.position`, `@GlobalScope.rand_range` -> `randf_range`).
+- `--exists` (R-26): PASS = verdict + `log:`. FAIL = verdict, then exactly one finding
+  `-: [api.not-found] error: <q> does not exist in Godot 4.7` (or `-: [api.renamed] error: <q> was renamed in Godot 4
+  (hint: use <new>)`), then `log:`; no stat lines, no did-you-mean search (keeps C §2.3 "FAIL => error finding").
 - Index missing: built on first use (same as `--rebuild`); Godot missing then: rc 4.
 ```
 $ tools/harness/h api Node2D.position
@@ -129,7 +137,8 @@ User args: `--mode scripts|scenes`, `--list <abs path of a UTF-8 file, one res:/
 `{"type":0|1|2,"file":str,"line":int,"msg":str,"bt":["res://f.gd:12",...]}` (Logger `_log_error`: error_type
 ERROR/WARNING/SCRIPT; `bt` = frames of `script_backtraces`). Last: `{"t":"done","rc":0|1}` then `quit(rc)`.
 rc 2 on bad args. Never calls `.new()` on loaded scripts (S2). Not part of the black-box surface except through
-`h check`; tests in `tests/gd/a1/` may run it directly with these args.
+`h check` and `checkrun.load_check` (§3.1); contract tests may run it directly only via the T1 helper
+`run_godot(args, project, timeout)` (C §2.12, R-39). A2 reuses this protocol unchanged (R-30).
 
 ### 2.8 Config keys
 No new table. A1 reads `[harness] godot, godot_version, autoloads`, `[timeouts]`, `[scan] ignore` (C §2.6).
@@ -141,27 +150,38 @@ API index: `$HARNESS_CACHE/api/<godot_version_string>/{extension_api.json,@GDScr
 ### 3.1 Files to create (builder B1; exact paths)
 Step 0 (C §3.1, all B1): `tools/harness/harness/{out,project,config,logscan,godot,proc,faults}.py`,
 `verbs/selftest.py`; Δ `cli.py`, `verbs/doctor.py`, `tools/harness/h` (C1-C3, C8, C9).
-A1 proper: `tools/harness/harness/verbs/{check,import_,sync,api}.py` — note `import` is a Python keyword, so the
-module is `verbs/import_.py` and cli maps a trailing `_` away (`import_` -> `h import`; Δ to C §2.1 discovery);
-`tools/harness/harness/checkrun.py` (phase driver, record->finding mapping, resume), `apiindex.py` (build, load,
-lookup, Levenshtein), `data/renames_3to4.json` (copy of `.claude/research/scripts/r1_5_lint/renames.json`),
-`addons/harness/runners/load_check.gd`; Δ `tools/bootstrap.sh` step 8 (§3.5). Not created (vs plan §7):
-`runners/smoke.gd` (merged into `load_check --smoke`), `runners/api_dump.gd` (index built in Python from dumps).
-Ports: `.claude/research/scripts/r1_4_scene_format/load_check.gd` (Logger capture) extended per §2.7; the
-`script_backtraces` and begin/end additions are from §3.6 spikes G/H.
+A1 proper (under `tools/harness/harness/`): `verbs/{check,import_,sync,api}.py` (`import_` -> `h import`, R-04),
+`checkrun.py` (phase driver, record->finding mapping, resume), `sync.py` (R-33), `apiindex.py` (build, load, lookup,
+Levenshtein), `data/renames_3to4.json` (copy of `.claude/research/scripts/r1_5_lint/renames.json`); plus
+`addons/harness/runners/load_check.gd` (port of `.claude/research/scripts/r1_4_scene_format/load_check.gd` + §2.7
+records) and Δ `tools/bootstrap.sh` step 8 (§3.5). `godot.py` also exposes `spawn` (R-09), `ensure_imported`
+(R-24, R-32) and §3.8 (R-14); `godot.run` returns `Invocation` and never adds findings to the Run (R-31). Not
+created (vs plan §7): `runners/smoke.gd` (= `load_check --smoke`), `runners/api_dump.gd` (index built in Python).
+Public library API for other areas (not importable by unit tests, R-01):
+- `checkrun.load_check(run, project, res_paths: list[str], smoke: int = 0) -> list[dict]` (R-30): §3.2 steps 3-8
+  without file-set building, import or lint. Returns findings as dicts (C §2.7 fields) and does NOT add them to the
+  Run; its invocations go to run.json. `h check` uses it; A2 calls it for pre/post-write checks.
+- `sync.ensure_synced(run, project) -> str` (`fresh` | `ran (<why>)`): mirrors `addons/harness/` when project.godot
+  declares any harness autoload and `.sync.json.source_hash` is missing or differs. Never edits project.godot or
+  installs gdUnit4.
+- `sync.install_gdunit4(run, project) -> str` (`present` | `installed (was missing)` | `installed (pin changed)`):
+  §2.3 policy (A4 K17); a user's own differing copy gives the rc 4 error of §2.3.
+- `sync.sync_project(run, project, gdunit=True, check=False)` = `h sync`.
 
 ### 3.2 `h check` algorithm (`checkrun.py`)
 1. Resolve project, config, binary (C §2.8.1). Build the file set (§2.1), sorted by res:// path.
 2. `godot.ensure_imported` (§3.3). If the import invocation itself failed by rc/hang/crash: emit its findings,
    `SKIP scripts/scenes: import failed` check lines, stop. Import scan findings (broken resources) count normally.
 3. **Scripts phase**: one invocation, kind `runner`, `load_check.gd --mode scripts --list <run dir>/artifacts/
-   scripts.txt`. Batch, not per-file: 52 files in 0.29 s vs 2.8 s (4-parallel per-file) and 10.3 s (sequential),
-   identical finding locations on the 35 r1_5 snippets [Run §3.6 A-C].
+   scripts.txt`. Batch, not per-file (10-35x faster, same locations [Run §3.6 A-C]).
 4. **Scenes phase**: one invocation, kind `runner` (`smoke` with `--smoke`), `--mode scenes` over `.tscn/.tres`.
    Runs after scripts so parse errors are reported even if a scene hangs in `_init`.
 5. **Resume**: if an invocation times out or crashes, the item with `begin` but no `end` gets `[harness.hang]` /
-   `[harness.crash]` at its path; items after it are re-run in a new invocation (at most 3 resumes per phase; then
-   `SKIP <phase>: <k> files not checked after 3 hangs`). Expected wall for one hang = timeout + ~1 s.
+   `[harness.crash]` at its path; when the process ends rc 0 with an item that has `begin` but no `end` (project code
+   called `quit()`, e.g. `get_tree().quit(0)` in `_ready` under `--smoke` [Run REVIEW §7]), that item gets
+   `[harness.runner-incomplete] error` instead (R-25, FAULT-P0-06). In all three cases items after it are re-run in a
+   new invocation (at most 3 resumes per phase; then `SKIP <phase>: <k> files not checked after 3 hangs`). Expected
+   wall for one hang = timeout + ~1 s. A missing `done` with no open item stays the C §2.8.6 runner-incomplete at `-`.
 6. **Record -> finding**: classify each R by rendering it as a log line (`SCRIPT ERROR: msg` for type 2,
    `ERROR: msg` for 0, `WARNING: msg` for 1) and applying the logscan rule table (same ids, severities, protection).
    Location, first that applies: R.file if `res://`; first `res://` frame in R.bt; first `res://<path>:<line>`
@@ -174,74 +194,60 @@ Ports: `.claude/research/scripts/r1_4_scene_format/load_check.gd` (Logger captur
    Logger did not see: crash lines, autoload errors after `done` (autoloads run after the runner's `_init` [Run K]).
 8. **rc merge**: C §2.8.6, plus: process rc != `done.rc` -> `[harness.rc] warning: exit code <rc> but runner reported
    <done> (project code called quit()?)`; the verdict never improves.
-9. **Lint phase** (unless `--no-lint`): `harness.lint.check_files(run, project, files)` if the module imports;
-   ImportError -> `lint skipped (harness.lint not installed)`; other exceptions -> rc 3 per C §2.9.
+9. **Lint phase** (unless `--no-lint`, then `lint skipped (--no-lint)`), R-29: if `harness.lint` imports, call
+   `harness.lint.run_lint(run, project, None, "full")` when no PATH and no `--changed` were given (lints
+   project.godot too); otherwise `run_lint(run, project, <selected files incl. dependents>, "full")` (A3 still applies
+   its `exclude`). ImportError -> `lint skipped (harness.lint not installed)`; other exceptions -> rc 3 per C §2.9.
 10. `run.finish(reason)`. All file lists and per-phase timings go to `run.json` `extra.check`.
 
 ### 3.3 Auto-import refinements (godot.py, C §2.8.7)
+Base rule per C §2.8.7 (R-24): content-based class-set staleness ((class, res path) pairs of the cache `list` vs
+`class_name` lines of every project `*.gd`); no mtime rule. Verbs call `godot.ensure_imported` explicitly (R-32).
 Import also runs when (a) a script path listed in `global_script_class_cache.cfg` no longer exists, or (b) a file
 with an importable extension (`png jpg jpeg webp svg bmp tga wav ogg mp3 glb gltf fbx obj ttf otf woff woff2`)
 lacks `<file>.import` or is newer than it [U: (b) not spiked; cheap stat-only rule]. `<why>` strings:
 `no .godot/`, `no class cache`, `stale class cache (<file>)`, `missing script (<file>)`, `unimported asset (<file>)`.
 
-### 3.4 Logscan details owned by B1 (C §2.8.4, additive)
-- Strip ANSI SGR sequences (`\x1b\[[0-9;]*m`) before matching: `--import` logs contain colour progress lines [Run E].
-- Location fallback for rules with "next (res://F:L)": if no paren location is found in the window, use the first
-  `res://<path>:<line>` token of the matched line (`ERROR: res://c19.tscn:1 - Parse Error: ...` [Run E]). Paths in
-  absolute-file backtraces (`(/abs/runner.gd:13)`) are never used. AC-00.16 must stay green.
+### 3.4 Logscan details (now normative in C §2.8.4, R-06)
+ANSI CSI strip and the `res://F:L`-in-line location fallback [Run E]; absolute-path backtrace frames are never used as
+locations. B1 builds them in `logscan.py`; AC-00.16 and AC-01.26 cover them.
 
 ### 3.5 `h api` index and the bootstrap --doctool gap
-- Gap root cause [Run F]: `godot --doctool <dir>` needs `<dir>` to exist (`ERROR: Argument supplied to --doctool must
-  be a valid directory path.`, rc 1, 0.2 s); bootstrap passed a not-yet-created `$S/doc`, and its guard only tests
-  `extension_api.json`, so it never retries. Also `--dump-extension-api-with-docs` with `--path <proj>` writes a
-  correct file and then aborts rc 134 (`Parameter "singleton" is null`); without `--path` it exits 0 [Run F].
-- `--rebuild`: in a fresh dir `$HARNESS_TMP/api-<run id>/` run (kind `doctool`, project None, cwd = that dir, no
-  `--path`, §8.3) `--headless --dump-extension-api-with-docs` and `--headless --doctool <dir>/doc` (after mkdir);
-  copy `extension_api.json` and `doc/modules/gdscript/doc_classes/@GDScript.xml` to the cache dir; build
-  `index.json` (load 0.21 s + build 0.06 s, 29,551 keys, 4.65 MB; reload 0.03 s [Run D]); write atomically
-  (tmp + rename); delete the scratch dir. Rebuild when index.json is missing or its `godot_version` differs.
-- Keys: `Class`, `Class.member` (methods with typed args, defaults and return; properties; signals; enum values;
-  constants), builtin types and their methods/members, `@GlobalScope.<utility fn|enum value>`,
-  `@GDScript.<fn|@annotation>`, singletons. Rename map: `class_renames`, `builtin_types_renames`,
-  `gdscript_function_renames`, `gdscript_properties_renames`, `gdscript_signals_renames`, `enum_renames` (values are
-  stored quoted, e.g. `"\"CharacterBody2D\""`: strip the quotes).
-- Δ bootstrap step 8 becomes: `"$ROOT/tools/harness/h" api --rebuild >"$LOG" 2>&1 || echo "WARN: api index failed"`,
-  guarded by `[ -f "$CACHE/api/<version string>/index.json" ]`; until `h api` exists, the minimal fix is
-  `mkdir -p "$S/doc"` and a guard on `@GDScript.xml` too.
+- Gap root cause [Run F]: `--doctool <dir>` needs `<dir>` to exist (rc 1 otherwise); bootstrap passed a
+  not-yet-created `$S/doc` and guarded only on `extension_api.json`. `--dump-extension-api-with-docs --path <proj>`
+  writes a correct file then aborts rc 134; without `--path` it exits 0.
+- `--rebuild`: in a fresh `$HARNESS_TMP/api-<run id>/` run (kind `doctool`, `project=None`, cwd = that dir, R-05)
+  `--headless --dump-extension-api-with-docs` and `--headless --doctool <dir>/doc` (after mkdir); copy
+  `extension_api.json` and `doc/modules/gdscript/doc_classes/@GDScript.xml` to the cache dir; build `index.json`
+  (29,551 keys, 4.65 MB, build 0.27 s, reload 0.03 s [Run D]); write atomically; delete the scratch dir. Rebuild when
+  index.json is missing or its `godot_version` differs.
+- Keys: `Class`, `Class.member` (methods with typed args/defaults/return, properties, signals, enum values,
+  constants), builtin types + members, `@GlobalScope.<fn|enum value>`, `@GDScript.<fn|@annotation>`, singletons.
+  Rename map: the `*_renames` tables of `renames.json` (values stored quoted, e.g. `"\"CharacterBody2D\""`: strip).
+- Δ bootstrap step 8: `"$ROOT/tools/harness/h" api --rebuild >"$LOG" 2>&1 || echo "WARN: api index failed"`, guarded
+  by `[ -f "$CACHE/api/<version string>/index.json" ]` (interim fix: `mkdir -p "$S/doc"` + guard on `@GDScript.xml`).
 
 ### 3.6 Spikes (scratchpad `a1/`, all [Run], Godot 4.7.stable.official.5b4e0cb0f, 4 cores)
-- A. 52-script project (46 typed class_name scripts, 1 user of `S01`, 3 broken, 1 static-init, 1 preload of a
-  broken script). Per-file `--check-only -s res://F` sequential: 10.33 s; `xargs -P 4`: 2.80 s. Batch runner (load
-  with Logger): 0.18 s (CACHE_MODE_REUSE) / 0.28 s (IGNORE). Same 4 failing files. -> batch, IGNORE.
-- B. Messages identical between modes, e.g. `SCRIPT ERROR: Parse Error: Cannot assign a value of type "String" as
-  "int".` + `at: GDScript::reload (res://scripts/bad_type.gd:3)`; Logger R = `{"type":2,"file":
-  "res://scripts/bad_type.gd","line":3,...}`. `uses_bad.gd` (preload of broken): `Could not resolve script
-  "res://scripts/bad_parse.gd"` at `uses_bad.gd:2`. `$Child` in a member initializer: parse error `(Warning treated
-  as error.)` in both modes. An unused local gives no output in either mode (warnings are not printed).
-- C. r1_5 cases (35 files): batch and per-file give the same 24 `GDScript::reload` locations (c01:1 c02:2 c03:2
-  c04:3 c05:3 c07:1 c08:2 c09:3 c10:3 c11:4 c12:2 c13:3 c14:3 c15:3 c17:3 c19:2 c23:3 c24:2 c25:3 c27:3 c28:4 c30:4
-  c31:5 d01:4); batch 0.29 s.
-- D. API index prototype: see §3.5 numbers; `Input.is_action_just_pressed` -> `func is_action_just_pressed(action:
-  StringName, exact_match: bool = false) -> bool`; `KinematicBody2D` absent from the dump, present in
-  `class_renames` -> `CharacterBody2D`.
-- E. `--import` on the r1_4 project: rc 0, logs `ERROR: res://cases/c19_future_format.tscn:1 - Parse Error: Saved
-  with newer format version.`; 24 lines carry ANSI colour codes (progress). Import never reports GDScript parse
-  errors (52-script project: no `SCRIPT ERROR` at import) -> import is not a check.
-- F. doctool / dump behaviour as in §3.5: `--doctool <existing dir>` rc 0 in 1.2-1.36 s, 1,076 XML files, 7.1 MB,
-  `@GDScript.xml` under `modules/gdscript/doc_classes/`. The dump with `--path` is byte-identical to the cached one.
-- G. Scenes batch on r1_4 c00-c27 (+3): 0.18 s; statuses match r1_4 §2 (c08/c09/c16/c19 load-failed, c13
-  instantiate-failed; c03 c04 c10 c11 c12 c14 c17 c18 c23 with records; c01 c02 c05 c06 c07 c15 c20-c22 c24-c27
-  clean). Parse errors of `.tscn` carry the location only in the message (`res://cases/c16_syntax_error.tscn:N`).
-- H. `--smoke 2` (await `physics_frame` inside the runner's `_init`): catches c06 c16 c18 c22 c26 c32 d02 d03 (8/8
-  R-class); c20 c21 c29 stay clean; 3 scenes in 0.37 s. C++-side errors (`Can't emit non-existing signal "fooo"`,
-  file `core/object/object.cpp`) carry `bt: ["res://cases/c18_emit_str.gd:4"]` -> exact script line.
-- I. Hang: scene whose script loops in `_init`; `timeout -k 3 5` -> rc 124 at 5.01 s; log has `begin` for
-  `res://x/hang.tscn` with no `end` -> attribution works; the log is flushed up to the kill.
-- J. `--check-only` and batch both run `static var` initialisers and `_static_init()` (printed `STATIC_INIT_RAN`);
-  `--import` does not (a script whose static initialiser loops: import rc 0 in 5.1 s, batch rc 124 at 5.0 s).
-- K. Autoloads under `-s`: instantiated AFTER the runner's `_init` returns (output after `done`); their `_ready` runs;
-  an autoload calling `Engine.get_main_loop().quit(0)` turned a runner `quit(1)` into process rc 0. `--check-only`
-  does not run autoloads. Hence §3.2 steps 7-8, and FAULT-P0-06's premise (§8.2).
+- A. 52-script project (3 broken, 1 static-init, 1 preload of a broken script): per-file `--check-only` 10.33 s
+  serial, 2.80 s `xargs -P 4`; batch Logger runner 0.18 s (REUSE) / 0.28 s (IGNORE); same 4 failing files.
+- B. Messages identical between modes (`SCRIPT ERROR: Parse Error: ...` + `at: GDScript::reload (res://F:L)`; Logger
+  R carries file/line). Preload of a broken script: `Could not resolve script` at the preload line. `$Child` in a
+  member initializer: parse error `(Warning treated as error.)`. Warnings such as an unused local are not printed.
+- C. r1_5 cases (35 files): batch = per-file, 24 `GDScript::reload` locations (lines as in §6); batch 0.29 s.
+- D. API index: `Input.is_action_just_pressed` -> `func is_action_just_pressed(action: StringName, exact_match: bool
+  = false) -> bool`; `KinematicBody2D` absent from the dump, in `class_renames` -> `CharacterBody2D`.
+- E. `--import` on r1_4: rc 0, logs `ERROR: res://cases/c19_future_format.tscn:1 - Parse Error: ...`; 24 ANSI lines.
+  Import never reports GDScript parse errors -> import is not a check.
+- F. `--doctool <existing dir>` rc 0 in 1.2-1.36 s, 1,076 XML files; dump with `--path` byte-identical to cached one.
+- G. Scenes batch on r1_4 c00-c27: 0.18 s; c08/c09/c16/c19 load-failed, c13 instantiate-failed, c03 c04 c10 c11 c12
+  c14 c17 c18 c23 with records, rest clean. `.tscn` parse errors carry the location only in the message.
+- H. `--smoke 2`: catches c06 c16 c18 c22 c26 c32 d02 d03 (8/8 R-class); c20 c21 c29 clean; 3 scenes 0.37 s. C++-side
+  errors carry `bt: ["res://cases/c18_emit_str.gd:4"]` -> exact script line.
+- I. Hang in `_init`: `timeout -k 3 5` -> rc 124 at 5.01 s; `begin` without `end` attributes it; log flushed.
+- J. `--check-only` and batch run `static var` initialisers / `_static_init()`; `--import` does not.
+- K. Autoloads under `-s` are instantiated after the runner's `_init` returns (output after `done`); an autoload
+  calling `quit(0)` turned a runner `quit(1)` into rc 0; `--check-only` runs no autoloads. Hence §3.2 steps 7-8;
+  the old FAULT-P0-06 premise could not fire (replaced, R-25).
 
 ### 3.7 Timeouts and budgets
 Kinds and defaults per C §2.8.2 (`runner` 60 s, `smoke` 30 s, `import` 180 s, `doctool` 120 s). Budgets (warm =
@@ -249,11 +255,19 @@ imported, version cached, 4 cores): `h check` on clean_min <= 5 s warm, <= 25 s 
 scripts <= 10 s warm; `h api <q>` <= 0.5 s with the index present; `h api --rebuild` <= 20 s; `h sync` <= 3 s;
 `h doctor` <= 5 s. A hang costs timeout + <= 5 s (C §2.8.3).
 
+### 3.8 godot.py display `xvfb` handling (R-14; from A6 §3.5 [Run K3], C §2.8.3)
+`display="xvfb"` wraps argv in `xvfb-run -a` (never with `--headless`); extra Godot args (`--fixed-fps`,
+`--resolution`, `--write-movie`) go through `args`. SIGTERM at T stops the whole group cleanly. (1) After the T+3 s
+SIGKILL path, remove each `/tmp/.X<n>-lock` created after the invocation started whose PID (file content) is dead, plus
+`/tmp/.X11-unix/X<n>`. (2) If the log matches `Unable to create DisplayServer|Xvfb failed to start|xvfb-run: error`,
+retry once (`retried: true`, both logs kept); still failing -> `Invocation.display_failed = True`, which the verb maps
+to rc 4 `[shot.no-display]` (A6 rule id). No A1 AC: verified by A6 AC-06.19 after B6 (N19, §8.2-7).
+
 ## 4. Acceptance criteria (contract layer unless noted; every `h` result also passes `assert_contract`)
 - AC-01.1 `h check` on a fresh copy of `clean_min`: rc 0, `PASS check`, `^import: ran \(no \.godot/\)`, `files: 1 .gd,
   1 .tscn`, wall <= 25 s; second run: `import: fresh`, wall <= 5 s.
 - AC-01.2 Each r1_5 P-class snippet (§6 `gd_cases`, 24 files) written into clean_min: rc 1 and a finding
-  `^res://scripts/<case>\.gd:<line>: \[godot\.parse-error\] error:` with the §3.6 C line. One test per case (param).
+  `^res://scripts/<case>\.gd:<line>: \[godot\.parse-error\] error:` with the §6 line. One test per case (param).
 - AC-01.3 All 24 at once (plus c20): rc 1, 24 distinct error paths in `findings.jsonl`, no finding for c20, wall
   <= 10 s warm, stdout <= 40 lines with a truncation line.
 - AC-01.4 Each r1_4 detectable case (c03 c04 c08 c09 c10 c11 c12 c13 c14 c16 c17 c18 c19 c23) placed in
@@ -281,8 +295,9 @@ scripts <= 10 s warm; `h api <q>` <= 0.5 s with the index present; `h api --rebu
 - AC-01.14 `addons/` excluded by default (a broken `addons/x/bad.gd` -> rc 0); `--include-addons` -> rc 1.
 - AC-01.15 `run.json` of a check has invocations of kinds `import` (if ran), `runner` (scripts), `runner`/`smoke`
   (scenes) with `--path <abs copy>` and the runner's absolute path after `-s`; `artifacts/scripts.txt` lists the files.
-- AC-01.16 Lint hook: with a stub `harness/lint.py` absent -> `lint skipped`; [unit] `checkrun` calls
-  `harness.lint.check_files` when importable (monkeypatched module) and its findings appear in the verdict.
+- AC-01.16 (R-28) `h check` on clean_min: the `phases:` line matches `lint (\d+\.\d+s|skipped \(.+\))` (valid before
+  and after B3); with `--no-lint` it contains `lint skipped (--no-lint)`. The run_lint integration itself is covered by
+  A3 AC-03.23 and FAULT-A3-22.
 - AC-01.17 `h import` on clean_min: rc 0, `import: ran (requested)`; `--force` removes `.godot/` first (run.json
   shows import ran and `.godot/global_script_class_cache.cfg` exists after); on c19 in scene_cases: rc 1 with
   `res://cases/c19_future_format.tscn:1:`.
@@ -291,14 +306,21 @@ scripts <= 10 s warm; `h api <q>` <= 0.5 s with the index present; `h api --rebu
   under `[autoload]`; `SKIP autoload Rng: not shipped`; second run 0 changed and `project.godot` byte-identical;
   `--check` after editing a synced file -> rc 1 `[harness.sync-stale]`; conflicting existing autoload -> rc 1
   `[harness.sync-conflict]` and `project.godot` unchanged; `--no-gdunit` skips gdUnit4; empty `HARNESS_CACHE` without
-  `--no-gdunit` -> rc 4.
+  `--no-gdunit` -> rc 4. Insertion (R-16): a project.godot with `[autoload]` holding only `Other="*res://o.gd"` followed
+  by `[display]` gets `Harness=...` on the line after `Other=` (still before `[display]`); a project.godot already
+  listing all shipped autoloads plus `SceneManager` stays byte-identical. gdUnit4 policy (R-33): a project with its
+  own `addons/gdUnit4/plugin.cfg` at another version and no `.sync.json` -> rc 4 `harness pins 6.2.2`, addon files
+  unchanged; the same with `.sync.json.gdunit4_commit` non-null -> overwritten, rc 0; installed copy has no `test/`
+  dir and no `*.uid` files.
 - AC-01.19 `h api Node2D.position`: rc 0, `sig: var position: Vector2`; `h api CharacterBody2D.position`: rc 0,
   `defined-in: Node2D`; `h api Input.is_action_just_pressed` sig contains `exact_match: bool = false`; `h api preload`
   -> `kind: function` from `@GDScript`; `h api @export_range` -> `kind: annotation`; `h api KEY_A` -> constant.
 - AC-01.20 `h api KinematicBody2D`: rc 1, line 1 contains `not in Godot 4.7`, `suggest: CharacterBody2D`,
   `[api.renamed]`. `h api Node2D.positon`: rc 1, hint contains `Node2D.position`. `h api Control.rect_position`: hint
   names `position`. `h api Frobnicator`: rc 1 `[api.not-found]` and no `suggest:`.
-- AC-01.21 `h api --exists Node2D.position` rc 0 (2 lines); `--exists Node2D.nope` rc 1; wall <= 0.5 s each.
+- AC-01.21 (R-26) `h api --exists Node2D.position` rc 0, exactly 2 lines (verdict, `log:`); `--exists Node2D.nope`
+  rc 1, exactly 3 lines: `^FAIL api`, `^-: \[api\.not-found\] error: Node2D\.nope does not exist in Godot 4\.7`,
+  `^log:`; `--exists KinematicBody2D` rc 1, 3 lines with `[api.renamed]`; wall <= 0.5 s each.
 - AC-01.22 `h api --search move_and` lists `CharacterBody2D.move_and_slide`; <= 40 lines with `more:` when > limit.
 - AC-01.23 `h api --rebuild` with an empty temp `HARNESS_CACHE`: rc 0, creates `api/4.7.stable.official.5b4e0cb0f/
   {extension_api.json,@GDScript.xml,index.json}`, wall <= 20 s, leaves no scratch dir in `HARNESS_TMP`; the
@@ -309,12 +331,16 @@ scripts <= 10 s warm; `h api <q>` <= 0.5 s with the index present; `h api --rebu
   never-imported copy -> `WARN import: stale (no .godot/)`, rc 5.
 - AC-01.26 [unit] `logscan.scan` strips ANSI (`\x1b[1mERROR: x\x1b[0m` -> `godot.error`) and takes the location from
   `ERROR: res://a.tscn:7 - Parse Error: y` -> (`res://a.tscn`, 7); AC-00.16 unchanged.
-- AC-01.27 [gd] `load_check.gd` run directly on a 3-item list prints begin/end pairs in order, one `done`, and
-  rc == done.rc; `--mode bogus` -> rc 2.
+- AC-01.27 [contract] (R-39) `load_check.gd`, run via `run_godot(args, project, timeout)` on a 3-item list in a
+  clean_min copy, prints begin/end pairs in order, one `done`, and rc == done.rc; `--mode bogus` -> rc 2. This is the
+  only A1 test that calls Godot directly (runner protocol only).
 - AC-01.28 [selftest] `h selftest --area A1`: rc 0, all FAULT-A1 caught, all CLEAN-A1 pass, wall <= 300 s.
 - AC-01.29 [e2e, slow] fresh clone: `tools/bootstrap.sh` with an empty `HARNESS_CACHE` leaves `@GDScript.xml` and
   `index.json` in the cache and prints no `WARN: api`.
 - AC-01.30 Every A1 verb with `--help` prints <= 40 lines, rc 0 (also C AC-00.3).
+- AC-01.31 (R-25) FAULT-P0-06 setup with `h check --smoke`: rc 1, `^res://scenes/quit_early\.tscn: \[harness\.runner-incomplete\]`,
+  and a scene sorted after it, `scenes/zz_null.tscn` with `scripts/null_ready.gd` (null call line 4), is resumed in a
+  new invocation and still yields `null_ready\.gd:4: \[godot\.script-error\]`; wall <= 40 s.
 
 ## 5. Seeded faults (`selftest/faults/FAULT-A1-NN/fault.toml`, C §2.10; must unless marked nice)
 Fixtures: `clean_min` (P0), `scene_cases` (§6). "write X" = `[[apply]] op="write"` from `files/`. Verb `check`
@@ -341,7 +367,7 @@ with `args = []` unless noted. All regexes are MULTILINE searches over stdout; m
 | FAULT-A1-18 | none: verb `api`, `no_project = true`, args `["KinematicBody2D"]`; max_seconds 30 | 1 FAIL `not in Godot 4\.7` and `CharacterBody2D` |
 | FAULT-A1-19 | none: verb `api`, `no_project = true`, args `["--exists","Vector2.length_squared_fast"]` | 1 FAIL `^FAIL api` |
 | FAULT-A1-20 | scene_cases: write `cases/c19_future_format.tscn`; verb `import` | 1 FAIL `^res://cases/c19_future_format\.tscn:1: \[godot\.error\]` |
-| CLEAN-A1-01 | clean_min: write c20 c21 c29 snippets as scripts + one scene each; args `["--smoke"]` | 0 PASS, not_regex `\[godot\.` |
+| CLEAN-A1-01 | clean_min: write c20 c21 c29 snippets as scripts + one scene each; args `["--smoke", "--no-lint"]` (R-27: lint warns on c21) | 0 PASS, not_regex `\[godot\.` |
 | CLEAN-A1-02 | clean_min: write `.godot/global_script_class_cache.cfg` = `list=[]\n`, then `scripts/late.gd` (`class_name Late extends Node`) and `scripts/uses_late.gd` (`var l: Late`) | 0 PASS `^import: ran \(stale class cache` |
 | CLEAN-A1-03 | scene_cases: write the r1_4 silent cases c00 c21 c24 c25 c27 into `cases/`; args `["--no-lint"]` | 0 PASS |
 | CLEAN-A1-04 | none: verb `api`, `no_project = true`, args `["Node2D.position"]` | 0 PASS `^sig: var position: Vector2$` |
@@ -394,18 +420,22 @@ d03_signal_connect_str extends Node\nfunc _ready():\n\tvar b = Button.new()\n\tb
 ```
   Each file ends with a newline. c28 line 4 is 8 spaces then `print(a)` (tabs elsewhere).
 - `tests/fixtures/harness_trees/sync_src/` (AC-01.18, used as `HARNESS_REPO`): `addons/harness/harness.gd`, `addons/
-  harness/runners/load_check.gd`, a `tools/harness/pins.toml` copy. Smoke scenes: hand-written, root `Node` + script.
+  harness/runners/load_check.gd`, a `tools/harness/pins.toml` copy. `tests/fixtures/harness_trees/gdunit_cache/`
+  (AC-01.18 policy cases, used as `HARNESS_CACHE`): `gdunit4/addons/gdUnit4/{plugin.cfg (version="6.2.2"),
+  src/a.gd, src/a.gd.uid, test/t.gd}`. Smoke scenes: hand-written, root `Node` + script.
 
 ## 7. Build order (B1; each step ends green on the named ACs; run `.venv/bin/pytest tests/unit tests/contract/p0
 tests/contract/a1 -q` after each)
 0. Contract step 0 per C §7 steps 1-2 (out, project, config, cli Δ incl. `import_` mapping, doctor Δ, logscan with
    §3.4) -> AC-00.1-10, 16-18, 26; AC-01.26, 30.
-1. `godot.py` + `proc.py` + `load_check.gd` (scripts mode) + `verbs/check.py` scripts phase only -> AC-00.11-14,
-   19, 20; AC-01.1-3, 15.
-2. Scenes phase, record mapping, scan merge, rc merge -> AC-00.15; AC-01.4-6, 10, 11.
-3. Resume after hang/crash, `--smoke` -> AC-01.7-9.
-4. File-set options, dependents, `--changed`, lint hook, auto-import refinements -> AC-01.12-14, 16.
-5. `verbs/import_.py` -> AC-01.17. `verbs/sync.py` -> AC-01.18.
+1. `godot.py` (run, spawn, ensure_imported, xvfb §3.8) + `proc.py` + `load_check.gd` (scripts mode) +
+   `verbs/check.py` scripts phase only + `sync.py` with `verbs/sync.py` (N16: B4 starts right after this gate) ->
+   AC-00.11-14, 19, 20, 27; AC-01.1-3, 15, 18, 27. Gate "core ready" (REVIEW §4).
+2. Scenes phase, record mapping, scan merge, rc merge, public `checkrun.load_check` (unblocks B2) -> AC-00.15;
+   AC-01.4-6, 10, 11.
+3. Resume after hang/crash/runner-incomplete, `--smoke` -> AC-01.7-9, 31; AC-00.21 P0-06.
+4. File-set options, dependents, `--changed`, `run_lint` call, auto-import refinements -> AC-01.12-14, 16.
+5. `verbs/import_.py` -> AC-01.17.
 6. `apiindex.py`, `verbs/api.py`, renames copy, bootstrap step 8 Δ -> AC-01.19-24, 29.
 7. Doctor extras -> AC-01.25. `faults.py`, `verbs/selftest.py` -> AC-00.21-23, AC-01.28. Then `tools/dev/ci.sh --quick`.
 
@@ -419,31 +449,32 @@ C# scripts (D1); checking `.res` binary resources; editor-plugin (`@tool`) execu
 ### 8.2 Open questions [U]
 1. Autoloads run during `h check` after the runner's `_init` (§3.6 K): their errors are real findings, but an
    autoload that blocks forever makes every check a hang. Accepted and documented for v0.
-2. FAULT-P0-06 (autoload `_init` calling `quit(0)` -> `harness.runner-incomplete`) cannot fire as written: the runner
-   has already printed `done` [Run K]. Recommend the reviewer replaces it with FAULT-A1-17's rc-mismatch rule or
-   drops it (it is `nice`).
+2. Closed (R-25): FAULT-P0-06 replaced by the `get_tree().quit(0)`-in-`_ready` scene under `--smoke` (must);
+   attribution in §3.2 step 5, AC-01.31.
 3. (b) of §3.3 (unimported assets) is not spiked; a texture added without import may load via the fallback loader.
 4. Whether enabling the gdUnit4 editor plugin in `project.godot` is needed for CLI runs: A4 decides; `h sync` only
    copies files.
 5. > 2,000 files may approach the 60 s runner timeout in one batch; v0 targets D5 "small".
-6. `--smoke`: a scene that calls `change_scene_to_file` or `quit()` ends the batch early (runner-incomplete/rc
-   findings at that scene). Acceptable for v0.
+6. `--smoke`: a scene that calls `change_scene_to_file` or `quit()` ends the batch early; the item gets
+   runner-incomplete (or `harness.rc`) and the rest is resumed (§3.2 step 5). Acceptable for v0.
+7. (N19) §3.8 xvfb cleanup/retry/`display_failed` (R-14) has no A1 AC: it needs A6 runners and is verified by
+   A6 AC-06.19 after B6. B1 ships it untested in step 1.
 
-### 8.3 Deviations from 00_contract (for the spec reviewer)
-- D-a `api.*` rule prefix (A1) added to C §2.7.
-- D-b Verb module `verbs/import_.py` for `h import` (keyword clash): cli strips one trailing `_` (C §2.1).
-- D-c `godot.run(..., project=None)` for kind `doctool` (and `version`): no `--path`, cwd = a given scratch dir,
-  because `--dump-extension-api-with-docs --path P` aborts rc 134 after writing [Run F] (C §2.8.2 says `--path`
-  always).
-- D-d logscan additions §3.4 (ANSI strip, message-embedded `res://F:L` fallback) and auto-import triggers §3.3.
-- D-e Scan/runner dedup for `check` by message text (§3.2 step 7), stricter than C §2.8.6's (path, line, message).
+### 8.3 Deviations from 00_contract (all accepted in REVIEW; now in the contract where noted)
+- D-a `api.*` prefix (C §2.7) **R-03**. D-b `verbs/import_.py`, cli strips one trailing `_` (C §2.1) **R-04**.
+- D-c `godot.run(project=None, cwd=<dir>)` for `doctool`/`version`, no `--path` (the dump with `--path` aborts rc 134
+  [Run F]) **R-05**. D-d logscan ANSI strip + `res://F:L` fallback (C §2.8.4) **R-06**; §3.3 refinements stay A1-local
+  on top of R-24. D-e message-level scan/runner dedup in `check` (§3.2 step 7) **R-07**.
+- D-f `h api --exists` FAIL = 3 lines, PASS = 2 (§2.4) **R-26**. D-g `sync.py` library, autoload insertion, gdUnit4
+  overwrite policy (§2.3, §3.1) **R-33/R-16**; extra return value `installed (pin changed)` (same policy, [U] not in
+  R-33's list). D-h public `checkrun.load_check` (§3.1) **R-30**. D-i xvfb handling in `godot.py` (§3.8) **R-14**.
+- Also applied: lint via `run_lint` **R-29**; CLEAN-A1-01 `--no-lint` **R-27**; AC-01.16 **R-28**; AC-01.27
+  [contract] via `run_godot` **R-39**; runner-incomplete attribution + AC-01.31 **R-25**.
 
 ### 8.4 Assumptions about other areas
-- A3 exposes `harness/lint.py` with `check_files(run, project: Path, files: list[Path]) -> None` adding findings via
-  `run.finding(...)`, <= 2 s for 100 files; A3 owns `h lint`. Until it exists `h check` reports `lint skipped`.
-- A2 re-uses `load_check.gd --mode scenes` for its post-write load-check (same arg protocol, §2.7) rather than its
-  own runner; A2 may add a mode but must not change existing modes.
-- A4 uses `h sync` to install gdUnit4 and relies on the auto-import rule; A8 hooks call `h check <file> --no-lint`
-  (one batch invocation, ~0.3 s Godot time) and `h api --exists`.
-- A5 ships `addons/harness/{harness,rng,command_bus}.gd`; `h sync` enables them by name (snake_case mapping).
-- Plan defaults D1-D5, B1-B8 and C §8 hold.
+- A3 (R-29): package `harness.lint` with `run_lint(run, project, paths | None, mode)` adds findings, <= 2 s per 100
+  files; A3 owns `h lint`/`h lsp`; there is no `h check --lsp`. A2 (R-30): calls `checkrun.load_check` and adds the
+  returned findings itself; a new `load_check.gd` mode needs an A1 re-plan. A4 (R-33): `sync.install_gdunit4` +
+  `godot.ensure_imported`; A5/A6/A7 `sync.ensure_synced`. A8 hooks: `h check <file> --no-lint --no-deps`, `h api
+  --exists`. A5 ships `harness,rng,command_bus.gd`, A7 `trace.gd` under `addons/harness/` (R-16). T1 owns
+  `tests/helpers/gd.py` and fixture `gd_host` (R-39); A1 has no `[gd]` suites. Plan D1-D5, B1-B8, C §8 hold.
