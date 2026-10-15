@@ -1,6 +1,7 @@
 # 02 Scene generator, editor and digest (A2)
 
-Status: spec v1, 2026-10-15, Opus planner P2. Conforms to `00_contract.md` ("contract §x"); deviations in §8.3.
+Status: spec v2, 2026-10-15, Opus planner P2 re-run (REVIEW B14/R-30, N05, N17 applied). Conforms to
+`00_contract.md` ("contract §x"); deviations in §8.3 (all accepted by REVIEW).
 Tags: [Run] verified in the §3.6 spikes (Godot 4.7.stable.official.5b4e0cb0f), [U] unverified.
 
 ## 1. Purpose and failure modes covered
@@ -242,11 +243,22 @@ Runners follow contract §2.8.5 (self-contained, `@@H` records, `done` then `qui
 `.new()`) and free every node they create, also on failure (a failed r1_4 build leaked a CanvasItem RID -> WARNING [Run]).
 
 ### 3.2 Ported from `.claude/research/scripts/r1_4_scene_format/`
-`scene_gen.gd` (owner rule, `add_child(n, true)`, `GEN_EDIT_STATE_INSTANCE`, `set_editable_instance`), `scene_digest.gd`,
-`load_check.gd` (`Cap` Logger), `modify.gd`, `setuid.gd`. Fixes: free the root on failure; no silent coercion
+`scene_gen.gd` (owner rule, `add_child(n, true)`, `GEN_EDIT_STATE_INSTANCE`, `set_editable_instance`), `scene_digest.gd`
+(with the `Cap` Logger from r1_4 `load_check.gd`), `modify.gd`, `setuid.gd`. A2 does not port or modify
+`load_check.gd`: A1 owns it and A2 reaches it only through `checkrun.load_check` (§3.3, REVIEW R-30).
+Fixes: free the root on failure; no silent coercion
 (`type_convert("abc", TYPE_VECTOR2)` = `(0, 0)` [Run]); detect auto-renamed duplicates.
 
 ### 3.3 Pipelines
+**Load-check (A1 protocol, REVIEW R-30).** Every pre/post write check is one call
+`checkrun.load_check(run, project, res_paths, smoke=0) -> list[dict]` (A1 §3.2 steps 3-8: `load_check.gd --mode
+scenes --list <file>`, begin/end records, resume after hang/crash, record->finding mapping, scan merge; no lint).
+It returns findings and adds none to the Run. A2 adds target findings with `run.add_findings`; dependent findings
+are only compared (§3.4), and pre-check findings go to `run.json` `extra.precheck`, never to stdout.
+**Godot calls.** Every verb calls `godot.ensure_imported(run, project)` once before its first invocation (contract
+§2.8.7). A2 runners go through `godot.run(run, "runner", project, runner=<abs>, user_args=[...])`, which returns an
+`Invocation`; A2 reads its `@@H` data from `inv.records` and calls `run.add_findings(inv.findings)` (contract §2.9).
+
 **digest**: `ensure_imported`, then `scene_digest.gd -- --mode scene <res> [--expand]`. The runner loads with
 `CACHE_MODE_IGNORE` under the Logger, walks `SceneState`, marks an entry `vanished` when its parent path is neither
 the root, another entry, nor below an instance/override entry, instantiates (default state) to detect
@@ -255,13 +267,13 @@ the root, another entry, nor below an instance/override entry, instantiates (def
 
 **scene-gen** (per spec): (1) parse + validate; `save` vs `--force` (rc 2 stops before Godot). (2) `ensure_imported`.
 (3) Existing target: digest-before (diff, uid, `ext_uids`), copy to `artifacts/backup/`, list dependents (§3.4),
-load-check them with A1's `load_check.gd`. (4) `scene_gen.gd -- --spec <abs> --out <res> [--uid <uid>]
+pre load-check them with `checkrun.load_check`. (4) `scene_gen.gd -- --spec <abs> --out <res> [--uid <uid>]
 [--seed <abs>]`. Inherited root: Python writes the seed `[gd_scene format=3]` / `[ext_resource type="PackedScene"
 path="<base>" id="1"]` / `[node name="<root>" instance=ExtResource("1")]` to `artifacts/seed.tscn`; the runner loads
 it by absolute path and instantiates `_MAIN_INHERITED` [Run]. The runner collects all errors; if any, it emits them
 and exits 1 without saving. Else it packs, saves (`make_dir_recursive`), restores `--uid` via `set_uid`, and emits
 `{"kind":"gen","live_nodes":N,"live_conns":C,"sets":[{"path","prop","value","is_default"}]}`. (5) Verify: one
-`load_check.gd` run on target + dependents, then digest-after. Python requires: every spec node with its
+`checkrun.load_check(run, project, [target] + dependents)` call, then digest-after. Python requires: every spec node with its
 kind/type/instance/script/groups/unique; each non-default set value equal in the after-digest; spec connections;
 `[editable]` for override/extra parents; no other entries; instantiated count == `live_nodes`; else
 `scene.lossy-save`. New dependent errors -> `scene.breaks-dependent`. (6) Any error in (4)-(5), or a warning under
@@ -269,22 +281,24 @@ kind/type/instance/script/groups/unique; each non-default set value equal in the
 `saved: none (rolled back)`; `run.json` `extra: {"saved": null, "rolled_back": true}`.
 
 **scene-edit**: (1) validate ops (rc 2). (2) `ensure_imported`. (3) digest-before; any error finding ->
-`scene.broken-input`, stop. Backup, dependents + their pre load-check. (4) `scene_edit.gd -- --scene <res> --ops
+`scene.broken-input`, stop. Backup, dependents + their pre `checkrun.load_check`. (4) `scene_edit.gd -- --scene <res> --ops
 <abs> [--uid <uid>] [--ext-uids <abs json>]`. Per op it emits `{"kind":"op","i":k,"op":..,"effects":[..]}` with the
 resolved facts Python needs: added paths+kinds, removed paths, moved old->new, props set (rendered value,
 `is_default`), NodePath props rewritten, conns added/removed, groups, `editable_added`, props dropped by
 `set_script`. Errors: exit 1 before saving. After saving: restore the header uid, then **ext uid reattach**: on each
 `[ext_resource` header line whose path had a `uid=` before (`--ext-uids`) and still resolves to that uid
 (`ResourceLoader.get_resource_uid`), re-insert `uid="..."`. This is the only text rewrite (header attributes only,
-followed by the load-check). (5) Verify as gen, plus `model.expected(before, effects)` == after-digest (nodes, kinds,
+followed by the load-check, digest compare and byte-exact rollback on any error; REVIEW R-21 accepted it as the
+harness repairing an engine save, not a hand edit). (5) Verify as gen, plus `model.expected(before, effects)` == after-digest (nodes, kinds,
 props, groups, unique, sibling order, conns, editable), else `scene.unexpected-change` (or `scene.lossy-save` for
 missing items). (6) `scene.stale-ref`: grep scripts attached in the before-digest after rename/remove. (7) Roll back
 as gen.
 
 ### 3.4 Dependents, uid, rollback
 Direct dependents: `.tscn`/`.tres` files (project walk skipping hidden dirs, `.godot/`, `project_exclude`) whose text
-contains `path="<target>"` or `uid="<target uid>"`. Only error findings absent from the pre-check (key: path, rule,
-message) count; transitive dependents are deferred. A script save drops the header uid and every ext `uid=` [Run];
+contains `path="<target>"` or `uid="<target uid>"`. Of the post `load_check` findings at a dependent path, only
+errors absent from the pre-check (key: path, rule, message) count; each becomes one `scene.breaks-dependent` at
+that path, message `new after edit of <target>: <original message>`. Transitive dependents are deferred. A script save drops the header uid and every ext `uid=` [Run];
 `set_uid` restores the header and `load("uid://...")` works without re-import [Run]. v0 never assigns new uids (the
 editor adds them on its first GUI save). Rollback restores bytes exactly (`shutil.copy2`).
 
@@ -419,7 +433,7 @@ reattach (AC-02.28).
 - Broken inputs stay out of the fixture: copy r1_4 cases c08, c10-c13, c18, c23 (`.claude/research/scripts/
   r1_4_scene_format/cases/`, they use `res://scripts/hero.gd`) into fault `files/` or test temp dirs. `FIXTURE.md`.
 
-## 7. Build order (builder B2, after B1 has `godot.py`, `out.py` and A1's `load_check.gd` green)
+## 7. Build order (builder B2, after B1 step 2: `godot.py`, `out.py`, `checkrun.load_check` green; REVIEW §4)
 1. `scenes/schema.py`, verb skeletons, rc 2 paths -> AC-02.9, 17; FAULT-A2-12.
 2. `scene_digest.gd` scene mode + `model.render` -> AC-02.1-6, 10; FAULT-A2-08, 13, 15.
 3. Resource and project modes -> AC-02.7, 8; CLEAN-A2-03.
@@ -438,13 +452,18 @@ exports, signal `unbinds`, ops two instance levels deep [U], C# (D1), 3D-specifi
 1. Whether the editor GUI rewrites a script-generated scene noisily on first save; `unique_id=` noise is accepted.
 2. `scene.stale-ref` is a text heuristic; full path lint is A1/A3 (F4). 3. Scripts' `_init` runs during gen/edit
 (F13, `@tool` not sandboxed). 4. Seed load by absolute path [Run] untested with `.gdignore`d run dirs.
-### 8.3 Deviations requested (spec reviewer to confirm)
-1. Contract §2.12 limits unit-test imports to `logscan`/`out`; A2 adds `harness.scenes.model` (pure) for AC-02.34.
-2. Plan §7 "digest <= 60 lines" -> contract <= 40 + `more:` + digest.txt; `--all-props` dropped (values always shown).
-3. Plan §3.2 `h digest --project` is spelled `--project-summary`, since `--project DIR` is a contract common flag.
+### 8.3 Deviations (all accepted by REVIEW §1)
+1. **Accepted (R-01).** Unit tests may import `harness.scenes.model` (pure, stdlib-only, side-effect-free) for
+   AC-02.34; it is on the contract §2.12 allowlist. Public names: `render`, `diff`, `expected`, `compare`.
+2. **Accepted (R-22).** Plan §7 "digest <= 60 lines" -> contract <= 40 + `more:` + digest.txt (contract §2.3);
+   `--all-props` dropped (values always shown).
+3. **Accepted (R-23).** Plan §3.2 `h digest --project` is spelled `--project-summary`, since `--project DIR` is a
+   contract common flag.
+4. **Accepted (R-21).** scene-edit ext `uid=` header-attribute rewrite (§3.3 step 4), as specified.
 ### 8.4 Assumptions about other areas
-- A1: `addons/harness/runners/load_check.gd` takes `-- <res path>...`, emits `@@H` findings with `path` = res path,
-  exits 0/1; `godot.run(run, "runner", project, runner=<abs>, user_args=[...])` returns the parsed records.
+- A1 (R-30, closed): A1's load_check protocol is canonical. A2 uses only `checkrun.load_check(run, project,
+  res_paths, smoke=0) -> list[dict]` (§3.3) and never runs `load_check.gd` itself or adds a mode to it (that would
+  need an A1 re-plan). `godot.run` returns an `Invocation` (R-31); `ensure_imported` is explicit (R-32).
 - A3 owns `tscn-*` text lint; A8's `.tscn` Edit/Write hook points to `h scene-edit`/`scene-gen`/`digest`. A9 commits
   one `*.scene.json` per sample scene, regenerates with `--force`, and mirrors any `h scene-edit` into the spec.
   Plan defaults D1-D5, B1-B8 as given; nothing in A2 needs Xvfb.

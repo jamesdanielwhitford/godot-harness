@@ -1,15 +1,15 @@
-area: A2 scene      phase: plan      state: done
-spec: .claude/plans/specs/02_scene.md @ uncommitted
+area: A2 scene      phase: plan      state: done (re-run after REVIEW v1)
+spec: .claude/plans/specs/02_scene.md @ uncommitted (v2, 469 lines)
 tests: 0 total (spec only; 34 ACs, 15 faults + 3 clean entries for T2)      lock: n/a
-updated: 2026-10-15 by planner (claude-opus-5-5)
+updated: 2026-10-15 by planner re-run (claude-opus-5-5)
 done:
-- 02_scene.md (450 lines): h digest (scene/.tres/--project-summary, --node/--expand/--json), h scene-gen (spec JSON Schema, $var/$res/$node/$new/$layers, inherited via seed, --force, multi-spec), h scene-edit (10 ops, MAIN/MAIN_INHERITED, all-or-nothing)
-- post-write pipeline: A1 load_check + digest-after + expected-effects compare + dependents re-check + byte-exact rollback; uid + ext uid= preservation
-- 7 spikes [Run] (runner cost 0.3 s; MAIN-state re-parents vanished nodes as Parent#Name; inherited removal silently no-op; script saves drop scene uid and ext uid=; set_uid restore works w/o reimport; set_scene_inherited_state not exposed -> seed file approach works)
+- v1: h digest / scene-gen / scene-edit, post-write pipeline, uid preservation, 7 spikes [Run]
+- v2 (REVIEW B14, R-30): pre/post write checks go through A1's checkrun.load_check(run, project, res_paths, smoke=0) -> list[dict] (§3.3 new "Load-check" paragraph, gen steps 3/5, edit step 3); dependent findings mapped to scene.breaks-dependent (§3.4); A2 no longer ports load_check.gd (§3.2); build order gated on B1 step 2 (§7); §8.4 A1 bullet closed
+- v2: godot.run returns Invocation (inv.records / inv.findings), explicit ensure_imported (§3.3, R-31/R-32)
+- v2 (N05, N17): §8.3 deviations marked accepted with R-ids (R-01 scenes.model public names, R-22, R-23) plus R-21 ext uid= rewrite (§8.3-4, §3.3 step 4)
 next:
-- spec reviewer: confirm deviations §8.3 (unit import of harness.scenes.model; digest <=40 lines + more:; --project-summary flag name)
-- A1 planner/reviewer: confirm load_check.gd runner interface assumed in §8.4
+- spec reviewer: confirm B14/N05 applied for G1
 - T2 writes tests/fixtures/projects/scene_host + tests/{contract,unit,e2e}/a2 + selftest faults FAULT-A2-01..15, CLEAN-A2-01..03
 blockers:
-- none
+- none (depends on B1 exposing checkrun.load_check by step 2, REVIEW §4)
 disputes: 0 open
