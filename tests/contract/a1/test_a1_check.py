@@ -95,7 +95,9 @@ def test_ac_01_3_all_24_at_once(mkwarm, tmp_path):
     assert err_paths == {f"res://scripts/{n}.gd" for n in P_CLASS}
     assert not any(x["path"] == "res://scripts/c20_ok_baseline.gd" for x in rows)
     assert r.wall <= 10, f"{r.wall:.1f}s"
-    assert len(r.lines) <= 40 and r.trunc is not None, "24+ errors cannot fit: a truncation line is required"
+    assert len(r.lines) <= 40
+    # contract 2.3: truncation line only if needed, and exactly when run.json says truncated
+    assert (r.trunc is not None) == bool(r.run_json()["truncated"])
 
 
 # ---- AC-01.4 / 01.5 -----------------------------------------------------------------------------------------

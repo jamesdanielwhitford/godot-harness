@@ -13,3 +13,5 @@ Everything else in the test passes (24 distinct error paths, no finding for c20,
 Proposed fix: replace the last assertion by
 `assert len(r.lines) <= 40` and `assert (r.trunc is not None) == bool(r.run_json()["truncated"])`
 (or require truncation only when `findings_total` exceeds the room: `r.trunc is not None or len(r.lines) <= 40`).
+
+Resolution: test fixed. Contract 2.3 prints a truncation line only "if needed"; 36 lines fit in 40, so none is correct. Last assertion now: len(lines) <= 40 and (trunc line present) == run.json truncated. AC text unchanged (its "with a truncation line" reads as conditional).
