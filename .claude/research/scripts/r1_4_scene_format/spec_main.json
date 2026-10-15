@@ -1,0 +1,6 @@
+{"save":"res://scenes/main.tscn","root":{"name":"Main","type":"Node2D","children":[
+ {"name":"A","instance":"res://scenes/child.tscn","props":{"position":{"$var":"Vector2(100,0)"}}},
+ {"name":"B","type":"Node2D","script":"res://scripts/hero.gd","groups":["g1","g2"],"props":{"target":{"$node":"A"}}},
+ {"name":"Mesh","type":"Node3D"}],
+ },
+ "connections":[{"from":"A","signal":"hit","to":"B","method":"_on_hit"}]}

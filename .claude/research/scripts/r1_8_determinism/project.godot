@@ -1,0 +1,8 @@
+config_version=5
+[application]
+config/name="det"
+run/main_scene="res://main.tscn"
+[physics]
+3d/physics_engine="GodotPhysics3D"
+[debug]
+gdscript/warnings/treat_warnings_as_errors=false

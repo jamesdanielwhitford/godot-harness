@@ -1,0 +1,532 @@
+- id: syn-yield
+  regex: (?<![\w.])yield\s*\(
+  applies_to: .gd
+  message: yield() removed
+  godot4_replacement: await signal_or_coroutine  e.g. await get_tree().create_timer(1.0).timeout
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: syn-onready
+  regex: ^\s*onready\s+var\b
+  applies_to: .gd
+  message: bare 'onready' keyword removed
+  godot4_replacement: '@onready var ...'
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: syn-export
+  regex: ^\s*export\s*(\(|var\b)
+  applies_to: .gd
+  message: bare 'export' keyword removed
+  godot4_replacement: '@export var x: T  / @export_range(...) etc.'
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: syn-tool
+  regex: ^tool\s*$
+  applies_to: .gd
+  message: bare 'tool' removed
+  godot4_replacement: '@tool (first line)'
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: syn-setget
+  regex: \bsetget\b
+  applies_to: .gd
+  message: setget removed
+  godot4_replacement: "var x: T:\n\tset(v): ...\n\tget: ..."
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: syn-remote-keywords
+  regex: ^\s*(remote|remotesync|sync|slave|puppet|puppetsync|master|mastersync)\s+func\b
+  applies_to: .gd
+  message: Godot 3 rpc keywords removed
+  godot4_replacement: '@rpc("any_peer"|"authority", "call_local"|"call_remote", "reliable"|"unreliable") func'
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: syn-connect-3arg
+  regex: \bconnect\s*\(\s*"[^"]*"\s*,\s*[^,()]+,\s*"
+  applies_to: .gd
+  message: string-based 3-arg connect()
+  godot4_replacement: sig.connect(callable)  e.g. button.pressed.connect(_on_pressed)
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: syn-disconnect-3arg
+  regex: \bdisconnect\s*\(\s*"[^"]*"\s*,\s*[^,()]+,\s*"
+  applies_to: .gd
+  message: string-based 3-arg disconnect()
+  godot4_replacement: sig.disconnect(callable)
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: syn-is-connected-3arg
+  regex: \bis_connected\s*\(\s*"[^"]*"\s*,\s*[^,()]+,\s*"
+  applies_to: .gd
+  message: string-based 3-arg is_connected()
+  godot4_replacement: sig.is_connected(callable)
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: syn-dot-super
+  regex: ^\s*\.[a-zA-Z_]\w*\s*\(
+  applies_to: .gd
+  message: Godot 3 '.method()' super call
+  godot4_replacement: super.method()  or  super()
+  false_positive_risk: medium
+  demo_corpus_hits: 4
+- id: syn-instance
+  regex: \.instance\s*\(
+  applies_to: .gd
+  message: PackedScene.instance() renamed
+  godot4_replacement: PackedScene.instantiate()
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: syn-empty-call
+  regex: \.empty\s*\(\s*\)
+  applies_to: .gd
+  message: Array/String/Dictionary.empty() renamed
+  godot4_replacement: is_empty()
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: syn-find-node
+  regex: (?<!func )\bfind_node\s*\(
+  applies_to: .gd
+  message: Node.find_node() renamed
+  godot4_replacement: find_child(pattern, recursive, owned)
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: syn-get-node-at
+  regex: get_node\s*\(\s*@
+  applies_to: .gd
+  message: Godot 4.0-alpha NodePath @ syntax
+  godot4_replacement: get_node("...")
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: syn-engine-editor-hint
+  regex: \bEngine\.editor_hint\b
+  applies_to: .gd
+  message: Engine.editor_hint removed
+  godot4_replacement: Engine.is_editor_hint()
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: syn-tween-new
+  regex: \bTween\.new\s*\(
+  applies_to: .gd
+  message: Tween.new() is an engine error in 4.x; Godot 3 Tween node API removed
+  godot4_replacement: var t := create_tween(); t.tween_property(obj, "prop", val, dur)
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: syn-tween-interpolate
+  regex: \.(interpolate_property|interpolate_method|interpolate_callback)\s*\(
+  applies_to: .gd
+  message: Godot 3 Tween API
+  godot4_replacement: create_tween().tween_property()/tween_method()/tween_callback()
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: syn-os-ticks
+  regex: \bOS\.(get_ticks_msec|get_ticks_usec|get_unix_time|get_datetime|get_system_time_msecs|get_system_time_secs)\b
+  applies_to: .gd
+  message: OS time API moved to Time singleton
+  godot4_replacement: Time.get_ticks_msec() / get_unix_time_from_system() / get_datetime_dict_from_system()
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: syn-os-window
+  regex: \bOS\.(window_fullscreen|window_size|window_position|window_maximized|window_minimized|window_borderless|vsync_enabled|set_window_title|get_screen_size|current_screen|set_window_fullscreen|is_window_fullscreen|set_use_vsync)\b
+  applies_to: .gd
+  message: OS window API moved to DisplayServer / Window
+  godot4_replacement: DisplayServer.window_set_mode()/window_set_size()/screen_get_size(); get_window().title
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: syn-file-dir-class
+  regex: (?<![\w.])(File|Directory)\.new\s*\(
+  applies_to: .gd
+  message: File/Directory classes removed
+  godot4_replacement: FileAccess.open(path, FileAccess.READ) / DirAccess.open(path)
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: syn-json-parse
+  regex: \b(parse_json|to_json|validate_json)\s*\(|\bJSON\.print\s*\(|\bJSON\.parse\s*\([^)]*\)\s*\.(result|error)\b
+  applies_to: .gd
+  message: Godot 3 JSON API
+  godot4_replacement: JSON.stringify(v) / var j := JSON.new(); j.parse(s); j.data
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: syn-rand-seed
+  regex: (?<![\w.])(rand_range|rand_seed|stepify|deg2rad|rad2deg|range_lerp|ease_in_out|is_nan_inf)\s*\(
+  applies_to: .gd
+  message: renamed global functions
+  godot4_replacement: randf_range / randi_range, snapped, deg_to_rad, rad_to_deg, remap
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: syn-move-and-slide-args
+  regex: \bmove_and_slide(_with_snap)?\s*\(\s*[^)\s]
+  applies_to: .gd
+  message: move_and_slide() takes no args in 4.x; uses CharacterBody velocity property
+  godot4_replacement: set velocity then call move_and_slide()
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: syn-change-scene
+  regex: (?<!func )\bchange_scene\s*\(
+  applies_to: .gd
+  message: SceneTree.change_scene() split
+  godot4_replacement: change_scene_to_file(path) / change_scene_to_packed(scene)
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: syn-get-tree-set-pause
+  regex: \bget_tree\(\)\.(set_network_peer|network_peer)\b
+  applies_to: .gd
+  message: SceneTree network_peer removed
+  godot4_replacement: multiplayer.multiplayer_peer
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: syn-poolarray
+  regex: \bPool(Byte|Color|Int|Real|String|Vector2|Vector3)Array\b
+  applies_to: .gd,.tscn,.tres
+  message: Pool*Array types removed
+  godot4_replacement: Packed*Array (PoolIntArray->PackedInt32Array, PoolRealArray->PackedFloat32Array)
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: syn-uppercase-bool-null
+  regex: \b(True|False|None)\b
+  applies_to: .gd
+  message: Python-isms
+  godot4_replacement: true / false / null
+  false_positive_risk: medium
+  demo_corpus_hits: 1
+- id: syn-python-self-print
+  regex: ^\s*print\s*\(.*\bf"
+  applies_to: .gd
+  message: Python f-string
+  godot4_replacement: '"%s" % x  or  "{x}".format({...})'
+  false_positive_risk: medium
+  demo_corpus_hits: 0
+- id: syn-python-elif-colon-missing
+  regex: ^\s*(if|elif|while|for|else)\b[^#:\n]*[^:\s#,(\[{]\s*$
+  applies_to: .gd
+  message: statement without trailing colon (multi-line expressions can false-positive)
+  godot4_replacement: add ':'
+  false_positive_risk: high
+  demo_corpus_hits: 10
+- id: syn-semicolon-end
+  regex: ;\s*$
+  applies_to: .gd
+  message: C-style semicolon (legal but non-idiomatic; usually LLM C#/JS leakage)
+  godot4_replacement: remove ';'
+  false_positive_risk: medium
+  demo_corpus_hits: 28
+- id: syn-braces-block
+  regex: ^\s*(if|for|while|func)\b.*\{\s*$
+  applies_to: .gd
+  message: C-style brace blocks
+  godot4_replacement: indent-based block with ':'
+  false_positive_risk: medium
+  demo_corpus_hits: 1
+- id: syn-var-types-csharp
+  regex: ^\s*(int|float|string|bool|Vector2|Vector3)\s+[a-z_]\w*\s*(=|;)
+  applies_to: .gd
+  message: C#-style typed declaration
+  godot4_replacement: 'var x: int = 0'
+  false_positive_risk: medium
+  demo_corpus_hits: 4
+- id: syn-void-return-type
+  regex: \)\s*->\s*(Void|None)\b
+  applies_to: .gd
+  message: wrong void spelling
+  godot4_replacement: -> void
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: syn-func-public
+  regex: ^\s*(public|private|protected|static void|void)\s+\w+\s*\(
+  applies_to: .gd
+  message: C#/Java method declaration
+  godot4_replacement: 'func name() -> void:'
+  false_positive_risk: medium
+  demo_corpus_hits: 1
+- id: syn-lambda-capture-reassign
+  regex: func\s*\([^)]*\)\s*(->\s*\w+\s*)?:\s*\w+\s*(\+|-|\*|/)?=
+  applies_to: .gd
+  message: single-line lambda reassigning an outer local (captures by value for primitives; outer variable NOT updated; engine warning CONFUSABLE_CAPTURE_REASSIGNMENT only in some cases)
+  godot4_replacement: use an Array/Dictionary/RefCounted holder, a member variable, or a Callable bound to a method
+  false_positive_risk: high
+  demo_corpus_hits: 0
+- id: syn-yield-signal-string-emit
+  regex: \bemit_signal\s*\(\s*"
+  applies_to: .gd
+  message: legal in 4.x but string-typed; typos are RUNTIME errors only
+  godot4_replacement: sig_name.emit(args)
+  false_positive_risk: medium
+  demo_corpus_hits: 2
+- id: syn-get-node-ready-var
+  regex: ^(var|const)\s+\w+(\s*:\s*\w+)?\s*(:?=)\s*(\$|get_node\()
+  applies_to: .gd
+  message: $ / get_node() in a member initializer runs before the node is in the tree
+  godot4_replacement: '@onready var x := $Path  (or @onready var x: T = $Path)'
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: syn-variant-infer-clamp
+  regex: :=\s*(clamp|min|max|abs|sign|lerp|round|floor|ceil|snapped)\s*\(
+  applies_to: .gd
+  message: global math funcs return Variant -> ':=' fails with INFERENCE_ON_VARIANT (error by default in 4.7 [Run])
+  godot4_replacement: 'typed variants: clampf/clampi, minf/mini, maxf/maxi, absf/absi, signf, lerpf, roundf, floorf, ceilf, snappedf; or ''var x: float = ...'''
+  false_positive_risk: medium
+  demo_corpus_hits: 0
+- id: syn-dict-get-infer
+  regex: :=\s*\w[\w.]*\.get\s*\(
+  applies_to: .gd
+  message: Dictionary.get()/Object.get() return Variant -> ':=' fails
+  godot4_replacement: 'var x: T = d.get(k, default)'
+  false_positive_risk: medium
+  demo_corpus_hits: 0
+- id: syn-int-div
+  regex: \bint\s*\(\s*\w+\s*/\s*\w+\s*\)|(?<![\w.])randi\s*\(\s*\)\s*%\s*\w+
+  applies_to: .gd
+  message: integer division / randi()%n idioms - legal; flagged by engine as INTEGER_DIVISION warning, not error
+  godot4_replacement: use floori(a / b) or randi_range(0, n-1)
+  false_positive_risk: high
+  demo_corpus_hits: 3
+- id: syn-rect-props-gd
+  regex: (?<![\w])(rect_(position|size|min_size|scale|rotation|pivot_offset|clip_content|global_position)|margin_(left|right|top|bottom))\b(?!\s*:)
+  applies_to: .gd
+  message: Godot 3 Control properties
+  godot4_replacement: position/size/custom_minimum_size/scale/rotation/pivot_offset/clip_contents/global_position; offset_left/right/top/bottom
+  false_positive_risk: medium
+  demo_corpus_hits: 0
+- id: tscn-g3-header
+  regex: ^\[gd_(scene|resource)\b[^\]]*\bformat=[12]\b
+  applies_to: .tscn,.tres
+  message: Godot 3 scene/resource format header (loads via compat, but is stale)
+  godot4_replacement: format=3 (written by the 4.x editor/ResourceSaver)
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: tscn-extresource-spaces
+  regex: (Ext|Sub)Resource\(\s+\d
+  applies_to: .tscn,.tres
+  message: 'Godot 3 numeric id with spaces: ExtResource( 1 ). Loads in 4.7 [Run] but 4.x writes ExtResource("1_ab12c")'
+  godot4_replacement: ExtResource("id")
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: tscn-ext-path-first
+  regex: ^\[ext_resource\s+path=
+  applies_to: .tscn,.tres
+  message: Godot 3 attribute order/ numeric id
+  godot4_replacement: '[ext_resource type="T" uid="uid://..." path="res://..." id="1_xxxxx"]'
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: tscn-g3-numeric-id
+  regex: \bid=\d+\]
+  applies_to: .tscn,.tres
+  message: numeric ext/sub resource id (Godot 3 style)
+  godot4_replacement: string ids
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: tscn-rect-props
+  regex: ^(rect_(position|size|min_size|scale|rotation|pivot_offset|clip_content)|margin_(left|right|top|bottom))\s*=
+  applies_to: .tscn
+  message: Godot 3 Control properties silently dropped on load [Run]
+  godot4_replacement: position/size/custom_minimum_size/scale/rotation/pivot_offset/clip_contents; offset_*
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: tscn-onready-in-scene
+  regex: ^\s*script\s*=\s*"res://
+  applies_to: .tscn
+  message: script assigned as string path instead of ExtResource
+  godot4_replacement: script = ExtResource("id")
+  false_positive_risk: medium
+  demo_corpus_hits: 0
+- id: tscn-g3-types
+  regex: ^\[node\s+name="[^"]*"\s+type="(Spatial|KinematicBody2?D?|RigidBody|StaticBody|Area|Camera|MeshInstance|CollisionShape|Sprite|AnimatedSprite|Position2D|Position3D|Particles2D|Particles|ViewportContainer|Viewport|YSort|ToolButton)"
+  applies_to: .tscn
+  message: Godot 3 node class names (4.7 loads many via compat remap, silently) [Run]
+  godot4_replacement: Node3D, CharacterBody3D, RigidBody3D, StaticBody3D, Area3D, Camera3D, MeshInstance3D, CollisionShape3D, Sprite2D, AnimatedSprite2D, Marker2D, Marker3D, GPUParticles2D/3D, SubViewportContainer, SubViewport, (YSort->Node2D y_sort_enabled), Button
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: fn-add_color_override
+  regex: (?<![\w])(?<!func )add_color_override\s*\(
+  applies_to: .gd
+  message: 'method add_color_override() renamed in Godot 4 (class: Control)'
+  godot4_replacement: add_theme_color_override
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: fn-can_instance
+  regex: (?<![\w])(?<!func )can_instance\s*\(
+  applies_to: .gd
+  message: 'method can_instance() renamed in Godot 4 (class: PackedScene, Script)'
+  godot4_replacement: can_instantiate
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: fn-change_scene
+  regex: (?<![\w])(?<!func )change_scene\s*\(
+  applies_to: .gd
+  message: 'method change_scene() renamed in Godot 4 (class: SceneTree)'
+  godot4_replacement: change_scene_to_file
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: fn-get_surface_material
+  regex: (?<![\w])(?<!func )get_surface_material\s*\(
+  applies_to: .gd
+  message: 'method get_surface_material() renamed in Godot 4 (class: MeshInstance3D -- Breaks ImporterMesh.)'
+  godot4_replacement: get_surface_override_material
+  false_positive_risk: high
+  demo_corpus_hits: 0
+- id: fn-world_to_map
+  regex: (?<![\w])(?<!func )world_to_map\s*\(
+  applies_to: .gd
+  message: 'method world_to_map() renamed in Godot 4 (class: TileMap, GridMap)'
+  godot4_replacement: local_to_map
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: fn-deg2rad
+  regex: (?<![\w])(?<!func )deg2rad\s*\(
+  applies_to: .gd
+  message: 'method deg2rad() renamed in Godot 4 (class: n/a)'
+  godot4_replacement: deg_to_rad
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: fn-rand_range
+  regex: (?<![\w])(?<!func )rand_range\s*\(
+  applies_to: .gd
+  message: 'method rand_range() renamed in Godot 4 (class: n/a)'
+  godot4_replacement: randf_range
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: fn-stepify
+  regex: (?<![\w])(?<!func )stepify\s*\(
+  applies_to: .gd
+  message: 'method stepify() renamed in Godot 4 (class: n/a)'
+  godot4_replacement: snapped
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: prop-bbcode_text
+  regex: \.bbcode_text\b(?!\s*\()
+  applies_to: .gd,.tscn
+  message: 'property bbcode_text renamed (class: RichTextLabel)'
+  godot4_replacement: text
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: prop-rect_position
+  regex: \.rect_position\b(?!\s*\()
+  applies_to: .gd,.tscn
+  message: 'property rect_position renamed (class: Control)'
+  godot4_replacement: position
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: sig-about_to_show
+  regex: \.about_to_show\.(connect|emit)\b|\bconnect\s*\(\s*"about_to_show"
+  applies_to: .gd
+  message: 'signal about_to_show renamed (class: Popup)'
+  godot4_replacement: about_to_popup
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: sig-network_peer_connected
+  regex: \.network_peer_connected\.(connect|emit)\b|\bconnect\s*\(\s*"network_peer_connected"
+  applies_to: .gd
+  message: 'signal network_peer_connected renamed (class: MultiplayerAPI)'
+  godot4_replacement: peer_connected
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: enum-BUTTON_LEFT
+  regex: (?<![\w.])BUTTON_LEFT\b
+  applies_to: .gd
+  message: constant BUTTON_LEFT renamed
+  godot4_replacement: MOUSE_BUTTON_LEFT
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: enum-TYPE_REAL
+  regex: (?<![\w.])TYPE_REAL\b
+  applies_to: .gd
+  message: constant TYPE_REAL renamed
+  godot4_replacement: TYPE_FLOAT
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: class-Camera
+  regex: (?:\bextends\s+|:\s*|\bas\s+|\bis\s+|->\s*|\[\s*)Camera\b(?![\w"\'/])|(?<![\w"\'/.$])Camera\.new\s*\(
+  applies_to: .gd
+  message: class Camera renamed/removed
+  godot4_replacement: Camera3D
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: class-Reference
+  regex: (?:\bextends\s+|:\s*|\bas\s+|\bis\s+|->\s*|\[\s*)Reference\b(?![\w"\'/])|(?<![\w"\'/.$])Reference\.new\s*\(
+  applies_to: .gd
+  message: class Reference renamed/removed
+  godot4_replacement: RefCounted
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: class-Tabs
+  regex: (?:\bextends\s+|:\s*|\bas\s+|\bis\s+|->\s*|\[\s*)Tabs\b(?![\w"\'/])|(?<![\w"\'/.$])Tabs\.new\s*\(
+  applies_to: .gd
+  message: class Tabs renamed/removed
+  godot4_replacement: TabBar
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: class-AnimatedSprite
+  regex: (?:\bextends\s+|:\s*|\bas\s+|\bis\s+|->\s*|\[\s*)AnimatedSprite\b(?![\w"\'/])|(?<![\w"\'/.$])AnimatedSprite\.new\s*\(
+  applies_to: .gd
+  message: class AnimatedSprite renamed/removed
+  godot4_replacement: AnimatedSprite2D
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: class-KinematicBody
+  regex: (?:\bextends\s+|:\s*|\bas\s+|\bis\s+|->\s*|\[\s*)KinematicBody\b(?![\w"\'/])|(?<![\w"\'/.$])KinematicBody\.new\s*\(
+  applies_to: .gd
+  message: class KinematicBody renamed/removed
+  godot4_replacement: CharacterBody3D
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: class-KinematicBody2D
+  regex: (?:\bextends\s+|:\s*|\bas\s+|\bis\s+|->\s*|\[\s*)KinematicBody2D\b(?![\w"\'/])|(?<![\w"\'/.$])KinematicBody2D\.new\s*\(
+  applies_to: .gd
+  message: class KinematicBody2D renamed/removed
+  godot4_replacement: CharacterBody2D
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: class-NetworkedMultiplayerENet
+  regex: (?:\bextends\s+|:\s*|\bas\s+|\bis\s+|->\s*|\[\s*)NetworkedMultiplayerENet\b(?![\w"\'/])|(?<![\w"\'/.$])NetworkedMultiplayerENet\.new\s*\(
+  applies_to: .gd
+  message: class NetworkedMultiplayerENet renamed/removed
+  godot4_replacement: ENetMultiplayerPeer
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: class-Particles2D
+  regex: (?:\bextends\s+|:\s*|\bas\s+|\bis\s+|->\s*|\[\s*)Particles2D\b(?![\w"\'/])|(?<![\w"\'/.$])Particles2D\.new\s*\(
+  applies_to: .gd
+  message: class Particles2D renamed/removed
+  godot4_replacement: GPUParticles2D
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: class-Position2D
+  regex: (?:\bextends\s+|:\s*|\bas\s+|\bis\s+|->\s*|\[\s*)Position2D\b(?![\w"\'/])|(?<![\w"\'/.$])Position2D\.new\s*\(
+  applies_to: .gd
+  message: class Position2D renamed/removed
+  godot4_replacement: Marker2D
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: class-Spatial
+  regex: (?:\bextends\s+|:\s*|\bas\s+|\bis\s+|->\s*|\[\s*)Spatial\b(?![\w"\'/])|(?<![\w"\'/.$])Spatial\.new\s*\(
+  applies_to: .gd
+  message: class Spatial renamed/removed
+  godot4_replacement: Node3D
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: class-Sprite
+  regex: (?:\bextends\s+|:\s*|\bas\s+|\bis\s+|->\s*|\[\s*)Sprite\b(?![\w"\'/])|(?<![\w"\'/.$])Sprite\.new\s*\(
+  applies_to: .gd
+  message: class Sprite renamed/removed
+  godot4_replacement: Sprite2D
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: class-ToolButton
+  regex: (?:\bextends\s+|:\s*|\bas\s+|\bis\s+|->\s*|\[\s*)ToolButton\b(?![\w"\'/])|(?<![\w"\'/.$])ToolButton\.new\s*\(
+  applies_to: .gd
+  message: class ToolButton renamed/removed
+  godot4_replacement: Button
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: class-YSort
+  regex: (?:\bextends\s+|:\s*|\bas\s+|\bis\s+|->\s*|\[\s*)YSort\b(?![\w"\'/])|(?<![\w"\'/.$])YSort\.new\s*\(
+  applies_to: .gd
+  message: class YSort renamed/removed
+  godot4_replacement: Node2D
+  false_positive_risk: low
+  demo_corpus_hits: 0
+- id: color-red
+  regex: \bColor\.red\b
+  applies_to: .gd
+  message: Color.red renamed
+  godot4_replacement: Color.RED
+  false_positive_risk: low
+  demo_corpus_hits: 0

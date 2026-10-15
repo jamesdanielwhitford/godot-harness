@@ -1,0 +1,3 @@
+{"save":"res://scenes/ov.tscn","root":{"name":"Main","type":"Node2D","children":[{"name":"A","instance":"res://scenes/child.tscn"}]},
+ "overrides":{"A/Sprite":{"position":{"$var":"Vector2(50,50)"}}},
+ "extra_nodes":[{"parent":"A/Inner","name":"Extra","type":"Marker2D"}]}

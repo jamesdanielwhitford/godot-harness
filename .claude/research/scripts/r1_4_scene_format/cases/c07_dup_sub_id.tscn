@@ -1,0 +1,10 @@
+[gd_scene format=3]
+
+[sub_resource type="RectangleShape2D" id="R_x"]
+size = Vector2(10, 20)
+
+[sub_resource type="CircleShape2D" id="R_x"]
+radius = 99.0
+
+[node name="Root" type="CollisionShape2D"]
+shape = SubResource("R_x")

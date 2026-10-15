@@ -1,0 +1,1 @@
+{"save":"res://scenes/child.tscn","root":{"name":"Child","type":"Node2D","script":"res://scripts/hero.gd","props":{"speed":250},"children":[{"name":"Sprite","type":"Sprite2D","props":{"position":{"$var":"Vector2(5,6)"}},"unique_name":true},{"name":"Inner","type":"Node2D","groups":["inside"]}]}}

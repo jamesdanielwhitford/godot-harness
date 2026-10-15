@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[node name="Root" type="Node2D"]
+position = "abc"
+visible = 5
+z_index = 1.7
