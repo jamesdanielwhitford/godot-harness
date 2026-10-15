@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-# Shim: run the harness python package (stdlib only at runtime).
+# Shim: run the harness python package (stdlib only at runtime). Does not cd: relative paths resolve against the caller's cwd.
 set -u
 HERE="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
-cd "$HERE" 2>/dev/null || exit 2
 export HARNESS_REPO="${HARNESS_REPO:-$(cd "$HERE/../.." && pwd)}"
 # -I isolates from cwd/user site; PYTHONPATH is ignored, so add the package dir via a tiny -c bootstrap.
 exec python3 -I -c 'import sys; sys.path.insert(0, sys.argv[1]); del sys.argv[1]; sys.argv[0]="h"; from harness.cli import main; sys.exit(main(sys.argv[1:]))' "$HERE" "$@"

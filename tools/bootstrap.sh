@@ -53,7 +53,7 @@ say "odiff: $OV"
 
 # 5. Python venv
 REQ="$ROOT/tools/harness/requirements-dev.txt"
-if ! "$ROOT/.venv/bin/python" -c 'import pytest,yaml,gdtoolkit' 2>/dev/null; then
+if ! "$ROOT/.venv/bin/python" -c 'import pytest,yaml,gdtoolkit,jsonschema' 2>/dev/null; then
   [ -x "$ROOT/.venv/bin/python" ] || python3 -m venv "$ROOT/.venv" >"$LOG" 2>&1 || fail "venv"
   "$ROOT/.venv/bin/pip" install -q -r "$REQ" >"$LOG" 2>&1 || fail "pip install"
 fi
@@ -77,21 +77,18 @@ if [ "$DOTNET" = 1 ]; then
   say "dotnet: $("$DN/dotnet" --version 2>/dev/null)"
 fi
 
-# 8. API dumps (scratch dir only)
-API="$CACHE/api/${GV%-stable}"
-if [ ! -f "$API/extension_api.json" ]; then
-  S="$(mktemp -d)"; mkdir -p "$API"
-  ( cd "$S" && timeout 120 "$GBIN" --headless --dump-extension-api-with-docs >"$LOG" 2>&1 \
-    && cp extension_api.json "$API/" ; \
-    timeout 120 "$GBIN" --headless --doctool "$S/doc" >>"$LOG" 2>&1 && cp -r "$S/doc" "$API/doc" )
-  rm -rf "$S"
-fi
-[ -f "$API/extension_api.json" ] && say "api dump: $API" || echo "WARN: api dump missing"
-
-# 9. sync/import sample (verbs arrive in later phases)
+# 8. API index (h api --rebuild: dump + doctool in a scratch dir, never in the repo)
 H="$ROOT/tools/harness/h"
-if [ -d "$ROOT/sample" ] && "$H" --help 2>/dev/null | grep -qw sync; then
-  "$H" sync sample >"$LOG" 2>&1 && "$H" import sample >>"$LOG" 2>&1 || echo "WARN: sample sync/import failed"
+API="$CACHE/api/$GSTR"
+if [ ! -f "$API/index.json" ] || [ ! -f "$API/@GDScript.xml" ]; then
+  "$H" api --rebuild >"$LOG" 2>&1 || echo "WARN: api index failed (see $(tail -n1 "$LOG"))"
+fi
+[ -f "$API/index.json" ] && say "api index: $API" || echo "WARN: api index missing"
+
+# 9. sync/import the sample project (exists from phase 5 on)
+if [ -d "$ROOT/sample" ]; then
+  { "$H" sync --project "$ROOT/sample" && "$H" import --project "$ROOT/sample"; } >"$LOG" 2>&1 \
+    || echo "WARN: sample sync/import failed"
 fi
 if [ "$QUIET" = 1 ]; then "$H" doctor >"$LOG" 2>&1 && echo "bootstrap ok" || { cat "$LOG"; exit 1; }
 else "$H" doctor; fi
