@@ -1,7 +1,8 @@
 # 07 Feel traces (A7, planner P7; absorbs R2.4)
 
-Status: spec v1, 2026-10-15, Opus planner P7. Conforms to `00_contract.md` v1 and builds on `05_scenario.md` v1
-(scenario schema, runner, `Harness`, `run_scenario()`); deviations are in §8. Tags: [Run] verified in §3.7 spikes
+Status: spec v2, 2026-10-15, Opus planner P7 re-run (REVIEW B18, N09, N17, N23 applied). Conforms to `00_contract.md`
+(B01-B07) and builds on `05_scenario.md` (scenario schema, runner, `Harness`, `replay.run_scenario()`, REVIEW R-19);
+deviations are in §8. Tags: [Run] verified in §3.7 spikes
 (Godot 4.7.stable.official.5b4e0cb0f, scratchpad `a7/`), [U] unverified.
 
 ## 1. Purpose and failure modes covered
@@ -44,7 +45,8 @@ h trace <scenario.json> --nodes [ID=]PATH[:prop,prop..]... [--metric NAME[:k=v,.
 ### 2.2 Stdout (contract §2.3)
 Stat lines in order: `project`, `import`, `sync`, `suite` (or `scenario`), `targets`, `runs`, `report`. Then one check
 line per measurement (`OK`/`FAIL`/`WARN`/`SKIP`), then findings, then `log:`. With > 20 measurements, `OK` lines after
-the 10th fold into `OK   <n> more metrics in range`. Literal examples:
+the 10th fold into one check line `OK   more: <n> metrics in range` (name `more`, keeps the C §2.3 check-line
+grammar; R-37). Literal examples:
 ```
 $ tools/harness/h trace res://feel/player.feel.json --project /tmp/h/feel_min
 FAIL trace 1 of 11 targets missed, 6 probes, 23 runs (12.4s)
@@ -232,8 +234,11 @@ returns at once). Active: connect `Harness.tick_completed` (A5) and sample on ev
 2. Targets (suite with `targets`): one `runner` invocation of `runners/feel_targets.gd --mode=read --in=<res path>`
    -> `@@H data` with all fields; validate (§2.7).
 3. Per probe, per rate: resolve the scenario (`scenario.load(path, vars=probe.vars)`), write
-   `artifacts/scenarios/<probe>[_k][_hz].json`, call A5 `run_scenario(..., fps=tick_rate,
-   global_seed=g(seed,'A'), extra_user_args=["--trace=<spec>"])`. Sweeps: (a) **anchor run** with the scenario's
+   `artifacts/scenarios/<probe>[_k][_hz].json` (`scenario.write_resolved`), call A5 `harness.replay.run_scenario(run,
+   project, <resolved json>, fps=tick_rate, global_seed=g(seed,'A'), out_dir=<run dir>/artifacts/replays/<probe>..,
+   extra_user_args=["--trace=<spec>"], kind="scenario")` (R-19); the verb adds `result.findings` to the Run (returned,
+   not added, like `Invocation` R-31 [U until A5 v2 states it]). The helper evaluates no asserts/goldens and adds no
+   `run.no-asserts`. Sweeps: (a) **anchor run** with the scenario's
    default vars; find L (`leave_floor`) or D (`land`, after the first takeoff) in its trace; missing, or not before
    the first probe-press tick -> `[feel.sweep]` error. (b) set `anchor_var` = L (coyote, presses at `$t0+$k`) or
    G = D+1 (buffer, presses at `$t0-$k`); run offsets 0, 1, ... `to`; stop 2 offsets after the first failure.
@@ -253,8 +258,9 @@ R0)`; `from_tick` params likewise. Each measurement in seconds (ticks / R; px an
 use seconds x delta, not per-tick counters). Targets are judged at the base rate only.
 
 ### 3.5 Movie (human gate clip)
-Per probe (anchor run for sweeps): A5's scenario run with `display="xvfb"`, engine args `--write-movie
-<abs>/movie/<probe>.avi --fixed-fps <tick_rate>` and the same `--trace` spec; kind `movie`. The movie trace must equal
+Per probe (anchor run for sweeps): `replay.run_scenario(..., kind="movie", display="xvfb", extra_args=["--write-movie",
+"<abs>/movie/<probe>.avi", "--fixed-fps", "<tick_rate>"], extra_user_args=[same --trace spec])` (R-19, R-42; A7's own
+path, independent of A6 `--movie`). The movie trace must equal
 the headless trace byte for byte (else `[feel.trace-incomplete]` warning "movie run diverged"); physics does not depend
 on rendering [Run §3.7 S4]. Movie size = the project's window size (`--resolution` was ignored [Run]). No xvfb-run: rc 4.
 
@@ -341,15 +347,16 @@ Untestable automatically: whether the targets are good taste (human, D10); that 
 
 ## 5. Seeded faults (fixture `feel_min`, verb `trace`, args `res://feel/player.feel.json` unless noted; `must` unless noted)
 Hook lines are exact text in `scripts/player.gd` / `feel/targets.tres` (§6); ops are `replace` count 1 unless noted.
-FAULT-A7-01..06 each also carry `not_regex = ['^FAIL +(?!<its metric>)']` (AC-07.23: exactly one metric fails).
+FAULT-A7-01..06 each also carry `not_regex = ['^FAIL +(?!<its metric>:)[a-z]+\.[a-z0-9_.]+:']` (check lines only, so
+the verdict line `FAIL trace ...` never matches; AC-07.23: exactly one metric fails; R-37).
 | ID | Planted | Expect |
 |---|---|---|
-| FAULT-A7-01 | `	velocity.x = move_toward(velocity.x, dir * MAX_SPEED, ACCEL * delta) # FEEL-ACCEL` -> `	velocity.x = dir * MAX_SPEED # FEEL-ACCEL` (instant velocity) | rc 1, `^FAIL +run\.accel_time: 1 tick`, not_regex `^FAIL +(?!run\.accel_time)`, <= 60 s |
-| FAULT-A7-02 | `const FALL_GRAVITY := 1960.0 # FEEL-FALL` -> `const FALL_GRAVITY := 980.0 # FEEL-FALL` (constant gravity) | rc 1, `^FAIL +jump\.fall_rise_ratio` |
-| FAULT-A7-03 | `const COYOTE_S := 0.1 # FEEL-COYOTE` -> `0.0` | rc 1, `^FAIL +jump\.coyote_window: 0 ticks` |
-| FAULT-A7-04 | `const BUFFER_S := 0.1 # FEEL-BUFFER` -> `0.0` | rc 1, `^FAIL +jump\.buffer_window: 0 ticks` |
-| FAULT-A7-05 | `const JUMP_CUT := true # FEEL-CUT` -> `false` (no variable jump) | rc 1, `^FAIL +jump\.cut_ratio` |
-| FAULT-A7-06 | `const CAM_SMOOTH := true # FEEL-CAM` -> `false` (camera snaps) | rc 1, `^FAIL +camera\.settle_time: 0 ticks` |
+| FAULT-A7-01 | `	velocity.x = move_toward(velocity.x, dir * MAX_SPEED, ACCEL * delta) # FEEL-ACCEL` -> `	velocity.x = dir * MAX_SPEED # FEEL-ACCEL` (instant velocity) | rc 1, `^FAIL +run\.accel_time: 1 tick`, not_regex `^FAIL +(?!run\.accel_time:)[a-z]+\.[a-z0-9_.]+:`, <= 60 s |
+| FAULT-A7-02 | `const FALL_GRAVITY := 1960.0 # FEEL-FALL` -> `const FALL_GRAVITY := 980.0 # FEEL-FALL` (constant gravity) | rc 1, `^FAIL +jump\.fall_rise_ratio:`, not_regex `^FAIL +(?!jump\.fall_rise_ratio:)[a-z]+\.[a-z0-9_.]+:` |
+| FAULT-A7-03 | `const COYOTE_S := 0.1 # FEEL-COYOTE` -> `0.0` | rc 1, `^FAIL +jump\.coyote_window: 0 ticks`, not_regex `^FAIL +(?!jump\.coyote_window:)[a-z]+\.[a-z0-9_.]+:` |
+| FAULT-A7-04 | `const BUFFER_S := 0.1 # FEEL-BUFFER` -> `0.0` | rc 1, `^FAIL +jump\.buffer_window: 0 ticks`, not_regex `^FAIL +(?!jump\.buffer_window:)[a-z]+\.[a-z0-9_.]+:` |
+| FAULT-A7-05 | `const JUMP_CUT := true # FEEL-CUT` -> `false` (no variable jump) | rc 1, `^FAIL +jump\.cut_ratio:`, not_regex `^FAIL +(?!jump\.cut_ratio:)[a-z]+\.[a-z0-9_.]+:` |
+| FAULT-A7-06 | `const CAM_SMOOTH := true # FEEL-CAM` -> `false` (camera snaps) | rc 1, `^FAIL +camera\.settle_time: 0 ticks`, not_regex `^FAIL +(?!camera\.settle_time:)[a-z]+\.[a-z0-9_.]+:` |
 | FAULT-A7-07 | targets.tres: every `approved_by = "fixture-human"` -> `approved_by = "claude"` (count 11; agent self-approval) | rc 5, `\[feel\.unapproved\].*11 of 11` |
 | FAULT-A7-08 | `const COYOTE_IN_TICKS := false # FEEL-COYOTE-TICKS` -> `true` (6-tick counter); args + `--rates 30,60,120` | rc 1, `\[feel\.rate-dependent\].*coyote`, <= 150 s |
 | FAULT-A7-09 | write `feel/badbind.feel.json` = player.feel.json with node `Playr`; args `res://feel/badbind.feel.json` | rc 1, `\[feel\.bind\].*Playr` |
@@ -423,27 +430,34 @@ Open [U]:
 3. `Input.get_action_strength` as the `in.*` source assumes A5 injects InputEventAction with strength (A5 §3.2).
 4. `--write-movie` + `-s` was verified with a stand-in runner, not A5's. 5. No `class_name` on FeelTarget makes
    inspector creation clumsy; `--approve` is the main path.
-Deviations from 00_contract / plan (for the reviewer):
-- D-a: unit tests import `harness.feel` (pure: `read_trace`, `measure`, `window`, `rate_spread`, `judge`,
-  `is_approved`), like A5's D-a.
-- D-b: plan fields `min`/`max` are `min_value`/`max_value` (`min`/`max` shadow GDScript built-ins).
-- D-c: plan fault idea "instant velocity (accel ticks = 0)" measures 1 under §2.4 (durations count steps).
-- D-d: `--nodes` gains an optional `ID=` prefix; the Trace autoload samples on A5's `Harness.tick_completed`.
-Assumptions on other areas:
-- A5: (1) the runner emits `Harness.tick_completed(0)` in `_begin` after recording tick 0 (§3.2 needs row 0);
-  (2) `run_scenario()` accepts a resolved scenario file path (vars applied, `tick_rate`/ticks rewritten by A7) plus
-  `extra_args` (engine args such as `--write-movie`) and `display`, and does not add `run.no-asserts`;
-  (3) `scenario.load(path, vars=..)` is public. If A5 declines (2), B7 writes the resolved JSON and calls
-  `godot.run(kind="scenario")` with A5's runner directly.
-- A1/P0: `Trace` is installed by `h sync` like the A5 autoloads; proposal: contract §2.6 default `autoloads` gains
-  `"Trace"` (dormant cost is one arg scan). `ensure_synced` copies the new `feel_*.gd` files.
+Deviations from 00_contract / plan (all accepted by REVIEW; R-id given):
+- D-a (accepted, R-01): unit tests import `harness.feel` (pure: `read_trace`, `measure`, `window`, `rate_spread`,
+  `judge`, `is_approved`); it is on the R-01 closed list.
+- D-b (accepted, R-48): plan fields `min`/`max` are `min_value`/`max_value` (`min`/`max` shadow GDScript built-ins).
+- D-c (accepted, R-17, R-48): plan fault idea "instant velocity (accel ticks = 0)" measures 1 under §2.4 (durations
+  count steps); §2.4 and §2.5 names are canonical for A9 and RP.A/RP.D.
+- D-d (accepted, R-48): `--nodes` gains an optional `ID=` prefix; the Trace autoload samples on A5's
+  `Harness.tick_completed`.
+- Fold line `OK   more: <n> metrics in range` (R-37) and fault `not_regex` on check lines only (R-37): fixes, not
+  deviations.
+Assumptions on other areas (resolved by REVIEW):
+- A5: (1) the runner emits `Harness.tick_completed(0)` in `_begin` after recording tick 0 (R-18; §3.2 needs row 0);
+  (2) `harness.replay.run_scenario(run, project, resolved, *, fps, global_seed, out_dir, extra_user_args, extra_args,
+  display, kind) -> RunResult` takes the resolved file, runs no asserts and adds no `run.no-asserts` (R-19);
+  (3) `scenario.load(path, vars=None, seed=None, ticks=None)` and `scenario.write_resolved(d, path)` are public (R-19).
+  Unknown `--x=` user args such as `--trace=` are ignored by `scenario.gd` (R-15).
+- A1/P0: contract §2.6 default `autoloads` includes `"Trace"` (R-16); `sync.ensure_synced` (R-33) copies the
+  `feel_*.gd` files. AC-07.22 [gd] runs through T1's `run_gd_suites("a7")` on `gd_host` (R-39).
 - A3 (optional): a static lint for Camera2D `process_callback` idle complements `feel.camera-idle`.
-- A6: if it ships a movie helper, B7 calls it instead of §3.5's own `godot.run(display="xvfb")` (same output path).
+- A6: approval predicate of §2.7 is shared with A6 baselines (R-35). A7's movie path (§3.5) is its own (R-42).
 - A8: PreToolUse denies agent Edit/Write on `**/*targets*.tres` lines with `min_value|max_value|approved_by|approved_on`
   and Bash `h trace .*--approve`; skill `godot-feel` documents §2.4, the catalogue, "tune tunables, never targets",
   and "hand the human feel_report.md + clip, never claim it feels good".
-- A9: the sample platformer ships `feel/*.json` scenarios, `player.feel.json`, `MovementTuning.tres`, and
-  `targets.tres` with `approved_by = "provisional-default"` (so the sample WARNs until a human approves), and adds
-  `Trace` to its autoloads; its Camera2D uses physics process mode.
+- A9 (R-36, R-35, R-17, R-16): the sample's suite lives at `res://feel/player.feel.json` and its probes
+  `res://feel/{run,jump,tap,coyote,buffer,camera}.json` run on `res://scenes/platformer/feel_arena.tscn` (level_1 +
+  player at Spawn, no SceneManager, so `feel.bind` resolves at row 0); run.* metrics take `params {"action":
+  "move_right"}`, trace `camera` -> `Player/Camera2D`. `targets.tres` uses the R-17 names/ranges with `approved_by =
+  "provisional-default"`, so `h trace res://feel/player.feel.json` gives rc 5 (only `feel.unapproved` warnings) until
+  a human approves at G3. `Trace` is in its `[autoload]`; its Camera2D uses physics process mode.
 - RP.A/RP.D: adopt these names and §2.4; new metrics join the catalogue via a planner re-run.
 - Plan defaults D1, D2, D4, B7 hold.

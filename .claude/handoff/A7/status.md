@@ -1,21 +1,18 @@
-area: A7 feel      phase: plan      state: done
-spec: .claude/plans/specs/07_feel.md @ uncommitted
+area: A7 feel      phase: plan      state: done (v2, REVIEW re-run)
+spec: .claude/plans/specs/07_feel.md @ uncommitted (463 lines)
 tests: 0 total (spec only; 24 ACs, 11 faults (10 must, 1 nice) + 2 clean entries for T7)      lock: n/a
-updated: 2026-10-15 by planner (claude-opus-5-5)
+updated: 2026-10-15 by planner re-run (claude-opus-5-5)
 done:
-- 07_feel.md (449 lines): `h trace` suite/scenario modes, --rates/--movie/--propose/--approve (TTY only), feel suite
-  JSON Schema, normative tick convention (row k = after step k; durations count steps; coyote/buffer windows as
-  offsets from leave tick L / first grounded step G), 16-metric catalogue + derived ratios, trace CSV/meta/metrics/report
-  formats, Trace autoload + FeelTarget(s) resources (approved_by/approved_on; unapproved never PASS), rule ids feel.*
-- 4 spikes [Run] in scratchpad a7/: convention (press at p -> takeoff row p; row 0 floor=0); counter N=6 measures
-  coyote 5|6 and buffer 5|4 by code order; time-based coyote 0.1 s = 3/6/12 ticks at 30/60/120 Hz vs counter 5 ticks
-  everywhere; 0.35 s per replay; Camera2D smoothing works headless, idle callback is fps-dependent; --write-movie with
-  an -s runner under Xvfb works (AVI, trace identical to headless, --resolution ignored)
+- v1: `h trace` suite/scenario modes, tick convention, metric catalogue, trace formats, Trace autoload, FeelTarget(s),
+  feel.* rules, 4 spikes [Run] (scratchpad a7/)
+- v2 (REVIEW B18, N09, N17, N23):
+  - R-37: FAULT-A7-01..06 not_regex = `^FAIL +(?!<metric>:)[a-z]+\.[a-z0-9_.]+:` (§5 header + rows; checked with
+    python re: verdict line and `OK   more:` do not match); fold line `OK   more: <n> metrics in range` (§2.2)
+  - R-19: §3.3 step 3 and §3.5 call `harness.replay.run_scenario(...)` (kind scenario / movie+xvfb+extra_args)
+  - N09/R-42: A6 movie-helper clause dropped (§8); D-a..D-d marked accepted with R-ids (N17)
+  - N23/R-36: §8 A9 bullet: suite at res://feel/player.feel.json on feel_arena.tscn
 next:
-- spec reviewer: deviations D-a..D-d; A5 asks (tick_completed(0), run_scenario with resolved file + extra_args, no
-  run.no-asserts); contract default autoloads + "Trace"; A8 hook patterns for targets/--approve; A9 sample targets
-- T7 writes fixture feel_min (+ feel_noautoload, feel_csv synthetic traces), ACs 07.1-07.24, FAULT-A7-01..11,
-  CLEAN-A7-01..02; records measured fixture values in test_notes.md
+- T7 writes fixture feel_min (+ feel_noautoload, feel_csv), ACs 07.1-07.24, FAULT-A7-01..11, CLEAN-A7-01..02
 blockers:
-- none (depends on A5 runner/helpers at build time)
+- none. [U] whether replay.run_scenario adds findings to the Run itself; A7 assumes it returns them (§3.3), A5 v2 decides
 disputes: 0 open
