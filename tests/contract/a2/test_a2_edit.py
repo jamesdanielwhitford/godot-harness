@@ -259,6 +259,7 @@ def test_ac_02_27_already_broken_dependent_does_not_block(host):
 
 
 def _norm_ids(text):
+    text = re.sub(r' unique_id=\d+', '', text)  # engine noise, spec 8.2-1 / AC-02.28
     text = re.sub(r'id="[^"]*"', 'id="ID"', text)
     return re.sub(r'(ExtResource|SubResource)\("[^"]*"\)', r'\1("ID")', text)
 

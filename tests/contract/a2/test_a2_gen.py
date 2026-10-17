@@ -220,7 +220,7 @@ def test_ac_02_20_two_specs_second_instances_first(host, tmp_path):
     r = gen(host, a, b)
     assert r.rc == 0, r
     ok = [c for c in r.checks if c[0] == "OK"]
-    assert len(ok) == 2 and {c[1] for c in ok} == {"res://gen/a.tscn", "res://gen/b.tscn"}, r.checks
+    assert len(ok) == 2 and {c[1] for c in ok} == {"gen/a.tscn", "gen/b.tscn"}, r.checks
     assert fs(host, "res://gen/b.tscn").exists()
 
 
@@ -230,7 +230,7 @@ def test_ac_02_20_first_broken_second_skipped(host, tmp_path):
     r = gen(host, a, b)
     assert r.rc == 1, r
     st = {c[1]: c[0] for c in r.checks}
-    assert st.get("res://gen/a.tscn") == "FAIL" and st.get("res://gen/b.tscn") == "SKIP", r.checks
+    assert st.get("gen/a.tscn") == "FAIL" and st.get("gen/b.tscn") == "SKIP", r.checks
     assert not fs(host, "res://gen/a.tscn").exists() and not fs(host, "res://gen/b.tscn").exists()
 
 

@@ -30,3 +30,12 @@
 FAULT-A2-10 expects `\[scene\.breaks-dependent\].*ov\.tscn` on one line, i.e. the dependent path must appear after the rule id.
 Spec 2.3 shows the dependent only in the location. The message is therefore
 `<dependent> breaks, new after edit of <target>: <engine message>` (location unchanged).
+
+## Resolutions (adjudicator, 2026-10-17)
+- D-1: TEST WRONG. REVIEW R-57 says check-line names never contain a colon and use the project-relative path without
+  `res://`. Tests now compare `gen/a.tscn` / `gen/b.tscn`. Builder behaviour correct. Spec 2.2 text (`<res path>`) is stale
+  vs R-57; no AC change needed.
+- D-2: TEST WRONG. AC-02.28 allows `unique_id=` attribute differences; `_norm_ids` now strips ` unique_id=\d+` from both
+  sides. Still catches uid loss/changes (uid asserts untouched) and extra diff lines.
+- Deviation scene.breaks-dependent message: ACCEPTED. Spec 2.3 does not forbid naming the dependent in the message and
+  FAULT-A2-10 requires it. Recommend planner add a note to spec 2.3 (no AC change).
