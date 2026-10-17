@@ -1,15 +1,14 @@
-area: A2 scene      phase: tests      state: done
+area: A2 scene      phase: build      state: done
 spec: .claude/plans/specs/02_scene.md @ uncommitted (v2)
-tests: 99 total / 0 pass / 99 fail-or-error (9 failed, 90 errors: unknown verb 'import' in warm fixture, ModuleNotFoundError harness.scenes)      lock: n/a
-updated: 2026-10-15 by test-writer (claude-sonnet-5-5)
+tests: 99 total / 96 pass / 3 fail (AC-02.20 x2, AC-02.28; all disputed, see test_disputes.md)      lock: n/a
+updated: 2026-10-17 by builder B2 (claude-sonnet-5-5)
 done:
-- fixture scene_host (verified load-clean with the r1_4 load_check), 6 specs
-- tests: unit/a2 (AC-02.34), contract/a2 (AC-02.1-32), e2e/a2 (AC-02.33)
-- selftest: FAULT-A2-01..15, CLEAN-A2-01..03
-- test_notes.md with interpretation choices [U]
+- verbs digest, scene-gen, scene-edit; scenes/{schema,model,pipeline}.py; runners scene_digest/gen/edit + _scene_lib.gd
+- h selftest --area A2: 18/18 (15 faults caught, 3 clean pass)
+- unit/a2 7/7, contract/a2 digest 18/18, gen 31/33, edit 34/35, slow 6/6, e2e 1/1
 next:
-- orchestrator: pathguard (a2), lock, commit
-- builder: B2 after B1 step 2
+- adjudicator: D-1 and D-2 in test_disputes.md
+- tools/dev/ci.sh --quick not run by B2
 blockers:
 - none
-disputes: 0 open
+disputes: 3 open (D-1 covers 2 tests, D-2 covers 1)
