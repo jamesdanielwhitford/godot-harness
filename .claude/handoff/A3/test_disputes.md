@@ -11,3 +11,9 @@ The "5 clean files" include `scripts/base.gd` (`signal died`, never used). Godot
 `(UNUSED_SIGNAL)` (severity 2), which spec 2.2 maps to a `lint.lsp` warning, so rc is 5, not 0. Everything else in the test
 passes (bad.gd line 4, player.gd PASS, wall 0.3 s). Proposed fix: use files without unused signals, or assert rc in (0, 5)
 and no error findings.
+
+## Adjudication (A3 adjudicator)
+- D-1: TEST WRONG. Spec 6.1 c18 mandates the syn-yield-signal-string-emit warning on every string emit, so rc 5 is correct. AC-03.15's
+  "-> none" means no signal-name finding. Tests now assert no lint.signal-name finding and rc in (0, 5).
+- D-2: TEST WRONG. base.gd has a genuine UNUSED_SIGNAL warning that spec 2.2 maps to a lint.lsp warning (rc 5). The 5-file speed
+  check now asserts rc in (0, 5) (never 1 = no errors). The single-file player.gd clean check still asserts rc 0. AC text unchanged.

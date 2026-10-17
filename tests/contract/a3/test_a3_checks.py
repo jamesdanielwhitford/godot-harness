@@ -75,7 +75,7 @@ def test_ac_03_15_signal_declared_on_this_script(tmp_path):
 def test_ac_03_15_inherited_native_signal_is_known(tmp_path):
     p = fresh(tmp_path)
     r = _lint_file(p, "scripts/s2.gd", 'extends Button\nfunc _ready() -> void:\n\temit_signal("pressed")\n')
-    assert not lint_findings(r, "lint.signal-name") and r.rc == 0, str(r)
+    assert not lint_findings(r, "lint.signal-name") and r.rc in (0, 5), str(r)
 
 
 def test_ac_03_15_signal_from_script_path_and_class_name_bases(tmp_path):
@@ -91,7 +91,7 @@ def test_ac_03_15_signal_from_script_path_and_class_name_bases(tmp_path):
 def test_ac_03_15_unresolvable_base_is_skipped(tmp_path):
     p = fresh(tmp_path)
     r = _lint_file(p, "scripts/s5.gd", 'extends SomeMissingClass\nfunc _ready() -> void:\n\temit_signal("whatever")\n')
-    assert not lint_findings(r, "lint.signal-name") and r.rc == 0, str(r)
+    assert not lint_findings(r, "lint.signal-name") and r.rc in (0, 5), str(r)
 
 
 def test_ac_03_15_typed_receiver_connect_unknown_signal(tmp_path):
