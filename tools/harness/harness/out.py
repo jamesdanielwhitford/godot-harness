@@ -29,6 +29,7 @@ import traceback
 from pathlib import Path
 
 MAX_LINE = 240
+MAX_HINT = 100  # stdout hints only; findings.jsonl keeps them in full
 KEEP_RUNS = 50
 MIN_AGE_S = 600
 SEV_RANK = {"error": 0, "warning": 1, "info": 2}
@@ -83,7 +84,10 @@ def _sort_key(f: dict):
 def finding_line(f: dict, count: int = 1) -> str:
     s = f"{_loc(f)}: [{f['rule']}] {f['severity']}: {str(f['message']).strip()}"
     if f.get("hint"):
-        s += f" (hint: {f['hint']})"
+        hint = str(f["hint"]).replace("\r", "").replace("\n", " / ")
+        if len(hint) > MAX_HINT:
+            hint = hint[: MAX_HINT - 3] + "..."
+        s += f" (hint: {hint})"
     if count > 1:
         s += f" (x{count})"
     return _cut(s)
