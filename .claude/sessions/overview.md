@@ -7,8 +7,11 @@ Read this first, then the newest `session-NNN-*.md`. Narrative detail lives in t
 |---|---|---|
 | 001 | 2026-10-15 | Round 1 research; build plan; Phase 0 (bootstrap, h doctor, dev tools, spikes S1-S6, G0 passed); RP.1/RP.2; contract + specs A1-A9; REVIEW: G1 NOT passed (19 blocking) |
 | 002 | 2026-10-15 | Orchestrator edits N12/N13; all planner re-runs; **G1 passed** (REVIEW §8, R-51..R-56); Phase 2 tests T1-T4 written and committed (not locked) |
+| 003 | 2026-10-17 | Reconciled unrecorded work (B1 A1 core built, T5-T7/T9 tests written, tests locked e6b075e); moved to local Mac; B2-B4 never ran |
 
 ## Current status
+- **Environment: local Mac since session 003** (Godot at /Applications/Godot.app, bootstrap is Linux-only, no .venv yet). See CLAUDE.md.
+- **Progress since session 002 note**: B1 built (verbs api/check/doctor/import/selftest/sync), tests T5/T6/T7/T9 written, `tests/LOCK.sha256` exists (e6b075e). B2/B3/B4 and A5-A9 builders not run. Some handoff status.md files are stale; trust git log.
 - Built: A0 `tools/bootstrap.sh` + `tools/harness/h doctor`; A0b dev tools `tools/dev/*.sh` (ci.sh gd layer now `pytest tests/gd`).
 - Specs: contract + A1-A9 all re-run for REVIEW except A8 (`08_claude_wiring.md`, N10/N24 open before T8). **G1 passed** (REVIEW §8). Decisions R-51..R-56 apply ahead of spec edits. Tag `specs-v1` is local only (tag push 403); commit ec98abe.
 - Phase 2 core tests written and committed (not locked): `tests/{unit,contract,e2e}/{p0,a1,a2,a3,a4}/`, helpers `tests/helpers/{h,gd}.py`, fixtures under `tests/fixtures/`, faults/clean under `selftest/`. ~615 tests collect, all red (no harness verbs beyond doctor). Red-check verifier report: `.claude/handoff/phase2/verify_2026-10-15_red.md` (if missing, rerun it).
