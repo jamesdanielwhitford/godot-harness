@@ -1,22 +1,9 @@
-area: A4 test-runner      phase: tests      state: done
-spec: .claude/plans/specs/04_test_runner.md (v2) @ uncommitted
-tests: ~64 written, all red (verb missing); 11 faults + 2 clean written      lock: n/a
-updated: 2026-10-15 by test-writer T4 (sonnet)
-done:
-- v1 (444 lines): `h test` verb, rc map, `[test]` config, tests.json, layout convention, 17 spikes [Run] (K1-K17)
-- v2 (463 lines), REVIEW.md v1 applied:
-  - N01/R-02: §2.2 up to 5 stat lines; finding lines 8, or 7 when `selected:` shown (keeps 15-line cap);
-    AC-04.13 and FAULT-A4-08 now expect `... 23 more findings` (target given), AC-04.13 adds a no-target 22 case
-  - N02/R-33: §3.2 step 2 calls `sync.install_gdunit4` (present | installed (was missing)); differing version
-    overwritten only if `.sync.json.gdunit4_commit` non-null, else rc 4; §3.1, §3.6 wording, AC-04.11, §8 A-1
-  - N17: §8 D-1 accepted (R-01), D-2 accepted (R-02), D-3 noted as consistent with contract §2.4; A-1/A-2 settled
-  - R-01: §3.1 closed public list `gdunit.parse_results` / `gdunit.parse_console`
-  - `[test.no-tests]` row (§2.3): always error; `--changed` empty = only 0-test PASS, no finding
-  - consistency: R-31 (`Invocation`, explicit add_findings, §3.2 step 7), R-24 (AC-04.18 `stale class cache (`),
-    R-39 (§6 gd_host/gd.py are T1's)
-next:
-- spec reviewer G1 re-check
-- T4 writes tests/{unit,contract}/a4/, fixture gd_tests + tests/fixtures/gdunit/ recordings, FAULT-A4-01..11, CLEAN-A4-01..02
-blockers:
-- none
-disputes: 0 open
+area: A4 test-runner      phase: build      state: built, 1 flaky dispute open
+spec: .claude/plans/specs/04_test_runner.md (v2)
+tests: tests/unit/a4 15 passed; tests/contract/a4 52 passed + 1 flaky (test_ac_04_3_1, see test_disputes.md D-1)
+selftest: `h selftest --area A4` 11/11 faults caught, 2/2 clean pass when idle; FAULT-A4-05 missed once under load (D-1)
+regressions: p0+a1+a2+a3 contract and a1-a3 unit: 425 passed, 0 failed
+updated: 2026-10-17 by builder B4 (sonnet)
+done: verbs/test.py, gdunit.py; touched out.py, sync.py, godot.py (build_notes.md)
+next: verifier; test author to fix D-1 fixture timing
+disputes: 1 open (D-1)

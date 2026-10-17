@@ -390,9 +390,9 @@ def _walk(project: Path):
 
 
 def project_classes(project: Path) -> dict:
-    """{res path: class name} from `class_name X` in the first 50 lines of every project *.gd."""
+    """{res path: class name} from `class_name X` in the first 200 lines of every project *.gd."""
     found = {}
-    rx = re.compile(r"^\s*class_name\s+(\w+)")
+    rx = re.compile(r"^\s*(?:@\w+(?:\([^)]*\))?\s+)*class_name\s+(\w+)")
     for dp, fns in _walk(project):
         for fn in fns:
             if not fn.endswith(".gd"):
@@ -401,7 +401,7 @@ def project_classes(project: Path) -> dict:
             try:
                 with open(p, encoding="utf-8", errors="replace") as fh:
                     for i, ln in enumerate(fh):
-                        if i >= 50:
+                        if i >= 200:
                             break
                         m = rx.match(ln)
                         if m:

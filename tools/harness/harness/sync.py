@@ -208,7 +208,7 @@ def install_gdunit4(run, project) -> str:
         run.error(4, f"gdUnit4 {_plugin_version(cfg)} in project, harness pins {_pin_version()} (run h sync)")
     src = _gd_cache_dir()
     if not src.is_dir():
-        run.error(4, "gdUnit4 not in cache (run tools/bootstrap.sh)")
+        run.error(4, f"gdUnit4 not found in {pins.cache_dir()} (run tools/bootstrap.sh)")
     dst = project / "addons" / "gdUnit4"
     if dst.exists():
         shutil.rmtree(dst)

@@ -178,6 +178,7 @@ class Run:
         self.extra: dict = {}
         self.godot_info: dict | None = None
         self.config: dict | None = None
+        self.max_lines = 40  # verb-local stdout cap (A4: 15)
         self.strict = "--strict" in (self.argv[: self.argv.index("--")] if "--" in self.argv else self.argv)
         self.rc: int | None = None
         self._dir: Path | None = None
@@ -294,7 +295,8 @@ class Run:
         if len(reason) > 100:
             reason = reason[:97] + "..."
         d = self.dir
-        lines = render(self.verb, verdict, reason, self.stats, self.checks, self.findings, self._display_dir())
+        lines = render(self.verb, verdict, reason, self.stats, self.checks, self.findings, self._display_dir(),
+                       max_lines=self.max_lines)
         truncated = any(ln.startswith("... ") and " more findings (" in ln for ln in lines)
         rows = sorted(self.findings, key=_sort_key)
         counts = {s: sum(1 for f in rows if f["severity"] == s) for s in ("error", "warning", "info")}
