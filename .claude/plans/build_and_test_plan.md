@@ -21,7 +21,7 @@ Tags: **[U]** unverified or a judgement call; **[DEFAULT]** a proposed answer to
 | 1b | Planner specs A1–A9 | done (v2); A8 spec still v1 | session 002 | P1-P7, P9 re-runs applied. P8 (N10, N24) before T8; planner pass for N25-N29 (REVIEW §8.3) optional |
 | 1c | Spec consistency review `specs/REVIEW.md` | done; **G1 passed** | session 002 | re-check in REVIEW §8: B01–B19 applied; new decisions R-51..R-56 (R-51: sample copies need `h sync --no-gdunit`). Tag `specs-v1` |
 | 2 | Tests written + locked (A1–A7, A9) | done, locked (T8 not written) | e715c8f..53cb06a, e6b075e / 2026-10-15 | T5/T6/T7/T9 added after session 002 note |
-| 3 | Core built (A1, then A2/A3/A4) | A1 (B1) built, 300/301 own tests (D-1 adjudicated e6b075e); A2/A3/A4 todo | e374993 / 2026-10-15 | session 003: now on local Mac, bootstrap needs a macOS path |
+| 3 | Core built (A1, then A2/A3/A4) | A1-A4 built; A4 dispute D-1 open; ci.sh --quick red only on unbuilt areas (unconfirmed) | e374993, 0d2ed1c, b73c769, 4787395 / 2026-10-17 | now on local Mac; next: adjudicate A4 D-1, then G2 |
 | 4 | Core verified from fresh clone, tag `v0-core` | todo | | Gate G2 |
 | 5 | A5 scenario, A9 sim/view + sample, A6 visual, A7 feel | todo | | Gate G3 |
 | 6 | A8 Claude Code wiring + dogfood | todo | | Gate G4 = harness v0 |

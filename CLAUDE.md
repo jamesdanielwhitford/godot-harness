@@ -5,7 +5,7 @@ Goal: build a harness that makes an LLM coding agent (Claude Code) work as well 
 Target engine: **Godot 4.7 stable** (`4.7.stable.official.5b4e0cb0f`).
 
 ## Status
-Phase 0 done (bootstrap, `h doctor`, dev tools). G1 passed (REVIEW §8). Phase 2 tests for P0, A1-A7, A9 written, committed and locked (`tests/LOCK.sha256`, e6b075e). Phase 3: B1 (contract step 0 + A1 core: check, import, sync, api, selftest, doctor) built; A2/A3/A4 builders (B2-B4) and A5-A9 builders not done; T8 not written. Current status and next-session checklist: `.claude/sessions/overview.md`.
+Phase 0 done (bootstrap, `h doctor`, dev tools). G1 passed (REVIEW §8). Phase 2 tests for P0, A1-A7, A9 written, committed and locked (`tests/LOCK.sha256`, e6b075e). Phase 3: A1-A4 built (B1-B4); A4 dispute D-1 open; G2 verifier and `v0-core` tag pending. A5-A9 builders not run; T8 not written. Current status and next-session checklist: `.claude/sessions/overview.md`.
 
 ## Start of every session
 1. Read `.claude/sessions/overview.md` first, then the latest `.claude/sessions/session-NNN-YYYY-MM-DD.md` (handoff, open decisions, detailed next steps).
