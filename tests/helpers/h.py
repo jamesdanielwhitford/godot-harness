@@ -349,6 +349,16 @@ def live_processes_mentioning(needle: str) -> list:
     """Pids (other than ours) whose cmdline contains `needle` (no surviving Godot after a hang)."""
     hits = []
     me = os.getpid()
+    if not Path("/proc").is_dir():  # macOS: no procfs, use ps
+        import subprocess
+        ps = subprocess.run(["ps", "-axo", "pid=,stat=,command="], capture_output=True, text=True).stdout
+        for line in ps.splitlines():
+            parts = line.split(None, 2)
+            if len(parts) < 3 or not parts[0].isdigit() or int(parts[0]) == me:
+                continue
+            if needle in parts[2] and "pytest" not in parts[2] and not parts[1].startswith("Z"):
+                hits.append((int(parts[0]), parts[2][:200]))
+        return hits
     for d in Path("/proc").iterdir():
         if not d.name.isdigit() or int(d.name) == me:
             continue

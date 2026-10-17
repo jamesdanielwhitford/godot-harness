@@ -1,6 +1,8 @@
 """h doctor: check the toolchain against pins.toml (contract C3, A1 2.5)."""
 import os
+import platform
 import shutil
+import sys
 from pathlib import Path
 
 from .. import out, pins, proc
@@ -42,7 +44,8 @@ def checks(project, cfg):
     head = c.stdout.strip() if c and c.rc == 0 else ""
     res.append(("gdunit4", head == p["gdunit4_commit"], f"{p['gdunit4_tag']} {head[:12] or 'missing'}"))
 
-    od = cache / "odiff" / "node_modules" / "@odiff" / "linux-x64" / "odiff"
+    plat = ("darwin-arm64" if platform.machine() == "arm64" else "darwin-x64") if sys.platform == "darwin" else "linux-x64"
+    od = cache / "odiff" / "node_modules" / "@odiff" / plat / "odiff"
     res.append(("odiff", od.exists(), str(od) if od.exists() else "missing"))
 
     py = root / ".venv" / "bin" / "python"
@@ -52,6 +55,9 @@ def checks(project, cfg):
 
     for tool in ("xvfb-run", "compare"):
         w = shutil.which(tool)
+        if tool == "xvfb-run" and sys.platform == "darwin":
+            res.append((tool, True, w or "not needed on macOS"))
+            continue
         res.append((tool, bool(w), w or "missing"))
     return res
 

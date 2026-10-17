@@ -16,7 +16,13 @@ mkdir -p "$CACHE" "$ROOT/tools/bin"
 # 1-2. Godot
 GV="$(pin godot_version)"; GSTR="$(pin godot_version_string)"; GSHA="$(pin godot_sha256)"
 GDIR="$CACHE/godot/$GV"; GBIN="$GDIR/Godot_v${GV}_linux.x86_64"
-if [ ! -x "$GBIN" ]; then
+OS="$(uname -s)"; ARCH="$(uname -m)"
+if [ "$OS" = Darwin ]; then
+  # macOS: use the installed app (override with HARNESS_GODOT); no download
+  GBIN="${HARNESS_GODOT:-/Applications/Godot.app/Contents/MacOS/Godot}"
+  [ -x "$GBIN" ] || fail "godot not found at $GBIN (install Godot $GSTR or set HARNESS_GODOT)"
+fi
+if [ "$OS" != Darwin ] && [ ! -x "$GBIN" ]; then
   say "godot: downloading $GV"
   T="$(mktemp -d)"
   curl -fsSL --retry 3 -o "$T/g.zip" "$(pin godot_url)" >"$LOG" 2>&1 || fail "godot download"
@@ -43,7 +49,8 @@ fi
 say "gdunit4: $GT ${GC:0:10}"
 
 # 4. odiff
-OV="$(pin odiff)"; OB="$CACHE/odiff/node_modules/@odiff/linux-x64/odiff"
+OV="$(pin odiff)"; case "$OS-$ARCH" in Darwin-arm64) OP=darwin-arm64;; Darwin-*) OP=darwin-x64;; *) OP=linux-x64;; esac
+OB="$CACHE/odiff/node_modules/@odiff/$OP/odiff"
 if [ ! -x "$OB" ]; then
   mkdir -p "$CACHE/odiff"
   npm i --silent --no-audit --no-fund --prefix "$CACHE/odiff" "odiff-bin@$OV" >"$LOG" 2>&1 </dev/null || fail "odiff npm install"
@@ -60,9 +67,11 @@ fi
 say "venv: ok"
 
 # 6. Display tools
-command -v xvfb-run >/dev/null || echo "WARN: xvfb-run missing (apt-get install xvfb)"
-command -v compare >/dev/null || echo "WARN: ImageMagick compare missing (apt-get install imagemagick)"
-if [ "$VULKAN" = 1 ]; then
+if [ "$OS" != Darwin ]; then
+  command -v xvfb-run >/dev/null || echo "WARN: xvfb-run missing (apt-get install xvfb)"
+  command -v compare >/dev/null || echo "WARN: ImageMagick compare missing (apt-get install imagemagick)"
+fi
+if [ "$VULKAN" = 1 ] && [ "$OS" != Darwin ]; then
   { apt-get update && apt-get install -y mesa-vulkan-drivers vulkan-tools mesa-utils; } >"$LOG" 2>&1 || fail "vulkan install"
   say "vulkan: installed"
 fi
